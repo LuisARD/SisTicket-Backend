@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Source/" />
+  <Folder Name="/Source/Core/">
+    <Project Path="SisTicket.Core.Application/SisTicket.Core.Application.csproj" Id="6114e884-72c2-43f2-b34c-ab4e8f5b0f44" />
+    <Project Path="SisTicket.Core.Domain/SisTicket.Core.Domain.csproj" Id="b0a5b108-a7bd-449c-86da-527989d99799" />
+  </Folder>
+  <Folder Name="/Source/Infrastructure/">
+    <Project Path="SisTicket.Infrastructure.Persistence/SisTicket.Infrastructure.Persistence.csproj" Id="dba7eed7-e89b-4d8f-9c36-c436afac82fb" />
+  </Folder>
+  <Folder Name="/Source/WebApp/">
+    <Project Path="WebApp.SisTicket/WebApp.SisTicket.csproj" Id="3f20f5db-7cd4-4e3a-9a49-c900017cd1dd" />
+  </Folder>
+</Solution>

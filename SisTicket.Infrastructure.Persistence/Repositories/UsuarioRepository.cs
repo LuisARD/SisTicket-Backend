@@ -19,9 +19,21 @@ public class UsuarioRepository : GenericRepository<Usuario>, IUsuarioRepository
             .FirstOrDefaultAsync(u => u.Email == email && u.Activo);
     }
 
+    public async Task<Usuario?> GetByNombreUsuarioAsync(string nombreUsuario)
+    {
+        return await _dbSet
+            .Include(u => u.Area)
+            .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario && u.Activo);
+    }
+
     public async Task<bool> ExistsByEmailAsync(string email)
     {
         return await _dbSet.AnyAsync(u => u.Email == email && u.Activo);
+    }
+
+    public async Task<bool> ExistsByNombreUsuarioAsync(string nombreUsuario)
+    {
+        return await _dbSet.AnyAsync(u => u.NombreUsuario == nombreUsuario && u.Activo);
     }
 
     public async Task<IEnumerable<Usuario>> GetByAreaIdAsync(int areaId)

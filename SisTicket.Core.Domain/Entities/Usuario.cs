@@ -5,6 +5,7 @@ namespace SisTicket.Core.Domain.Entities;
 
 public class Usuario : BaseEntity
 {
+    public string NombreUsuario { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public string Apellido { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

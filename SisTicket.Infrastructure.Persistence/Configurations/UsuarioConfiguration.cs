@@ -13,6 +13,10 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 
         builder.HasKey(u => u.Id);
 
+        builder.Property(u => u.NombreUsuario)
+            .IsRequired()
+            .HasMaxLength(50);
+
         builder.Property(u => u.Nombre)
             .IsRequired()
             .HasMaxLength(100);
@@ -39,6 +43,11 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.Activo)
             .IsRequired()
             .HasDefaultValue(true);
+
+        // Índice único en NombreUsuario
+        builder.HasIndex(u => u.NombreUsuario)
+            .IsUnique()
+            .HasDatabaseName("IX_Usuarios_NombreUsuario");
 
         // Índice único en Email
         builder.HasIndex(u => u.Email)

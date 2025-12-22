@@ -31,15 +31,28 @@ public class ComentarioService : IComentarioService
 
     public async Task<ComentarioResponse> CreateAsync(ComentarioRequest request, int usuarioId)
     {
-        var solicitud = await _unitOfWork.Solicitudes.GetByIdAsync(request.SolicitudId);
+        // Validar que existe la solicitud
+        var solicitud = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(request.SolicitudId);
         
         if (solicitud == null)
             throw new NotFoundException(nameof(Solicitud), request.SolicitudId);
 
+        // Validar que existe el usuario
         var usuario = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);
         
         if (usuario == null)
             throw new NotFoundException(nameof(Usuario), usuarioId);
+
+        // REGLA DE NEGOCIO: Solo pueden comentar:
+        // 1. El solicitante (autor de la solicitud)
+        // 2. Los gestores del área de la solicitud
+        // 3. Admin o SuperAdmin
+        if (!PuedeComentarEnSolicitud(usuario, solicitud))
+        {
+            throw new UnauthorizedException(
+                "No tiene permisos para comentar en esta solicitud. " +
+                "Solo el solicitante, gestores del área, Admin o SuperAdmin pueden comentar.");
+        }
 
         var comentario = new Comentario
         {
@@ -67,11 +80,50 @@ public class ComentarioService : IComentarioService
         if (usuario == null)
             throw new UnauthorizedException();
 
-        // Solo el autor del comentario o un admin/superadmin puede eliminarlo
-        if (comentario.UsuarioId != usuarioId && !usuario.TienePermisoAdministrativo())
-            throw new UnauthorizedException("No tiene permisos para eliminar este comentario");
+        // REGLA DE NEGOCIO: Pueden eliminar comentarios:
+        // 1. El autor del comentario
+        // 2. Admin
+        // 3. SuperAdmin
+        if (!PuedeEliminarComentario(usuario, comentario))
+        {
+            throw new UnauthorizedException(
+                "No tiene permisos para eliminar este comentario. " +
+                "Solo el autor, Admin o SuperAdmin pueden eliminarlo.");
+        }
 
         await _unitOfWork.Comentarios.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    // Método privado para validar permisos de creación de comentarios
+    private bool PuedeComentarEnSolicitud(Usuario usuario, Solicitud solicitud)
+    {
+        // 1. Es el solicitante (autor de la solicitud)
+        if (usuario.Id == solicitud.SolicitanteId)
+            return true;
+
+        // 2. Es gestor del área de la solicitud
+        if (usuario.EsGestor() && usuario.AreaId == solicitud.AreaId)
+            return true;
+
+        // 3. Es Admin o SuperAdmin
+        if (usuario.TienePermisoAdministrativo())
+            return true;
+
+        return false;
+    }
+
+    // Método privado para validar permisos de eliminación de comentarios
+    private bool PuedeEliminarComentario(Usuario usuario, Comentario comentario)
+    {
+        // 1. Es el autor del comentario
+        if (usuario.Id == comentario.UsuarioId)
+            return true;
+
+        // 2. Es Admin o SuperAdmin
+        if (usuario.TienePermisoAdministrativo())
+            return true;
+
+        return false;
     }
 }

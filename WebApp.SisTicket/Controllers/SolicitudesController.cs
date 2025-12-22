@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SisTicket.Core.Application.DTOs.Comentario;
 using SisTicket.Core.Application.DTOs.Solicitud;
 using SisTicket.Core.Application.Services.Interfaces;
 using SisTicket.Core.Domain.Enums;
@@ -6,16 +7,22 @@ using SisTicket.Core.Domain.Enums;
 namespace WebApp.SisTicket.Controllers;
 
 /// <summary>
-/// Gestión de Solicitudes
+/// Gestión de Solicitudes y Comentarios
 /// </summary>
 public class SolicitudesController : BaseApiController
 {
     private readonly ISolicitudService _solicitudService;
+    private readonly IComentarioService _comentarioService;
 
-    public SolicitudesController(ISolicitudService solicitudService)
+    public SolicitudesController(
+        ISolicitudService solicitudService,
+        IComentarioService comentarioService)
     {
         _solicitudService = solicitudService;
+        _comentarioService = comentarioService;
     }
+
+    #region Solicitudes
 
     /// <summary>
     /// Obtiene todas las solicitudes
@@ -147,4 +154,54 @@ public class SolicitudesController : BaseApiController
         await _solicitudService.DeleteAsync(id);
         return NoContent();
     }
+
+    #endregion
+
+    #region Comentarios
+
+    /// <summary>
+    /// Obtiene todos los comentarios de una solicitud
+    /// </summary>
+    [HttpGet("{solicitudId}/comentarios")]
+    [ProducesResponseType(typeof(IEnumerable<ComentarioResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetComentarios(int solicitudId)
+    {
+        var comentarios = await _comentarioService.GetBySolicitudIdAsync(solicitudId);
+        return Ok(comentarios);
+    }
+
+    /// <summary>
+    /// Crea un nuevo comentario en una solicitud
+    /// Pueden comentar: Solicitante, Gestores del área, Admin, SuperAdmin
+    /// </summary>
+    [HttpPost("{solicitudId}/comentarios")]
+    [ProducesResponseType(typeof(ComentarioResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateComentario(int solicitudId, [FromBody] ComentarioRequest request)
+    {
+        request.SolicitudId = solicitudId;
+        var usuarioActualId = GetCurrentUserId();
+        var comentario = await _comentarioService.CreateAsync(request, usuarioActualId);
+        return CreatedAtAction(nameof(GetComentarios), new { solicitudId }, comentario);
+    }
+
+    /// <summary>
+    /// Elimina un comentario
+    /// Pueden eliminar: Autor del comentario, Admin, SuperAdmin
+    /// </summary>
+    [HttpDelete("{solicitudId}/comentarios/{comentarioId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteComentario(int solicitudId, int comentarioId)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        await _comentarioService.DeleteAsync(comentarioId, usuarioActualId);
+        return NoContent();
+    }
+
+    #endregion
 }

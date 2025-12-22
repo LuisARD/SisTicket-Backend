@@ -53,7 +53,24 @@ public class TipoSolicitudService : ITipoSolicitudService
         if (tipo == null)
             throw new NotFoundException(nameof(TipoSolicitud), id);
 
-        _mapper.Map(request, tipo);
+        // Actualización parcial: solo actualizar campos con valores
+        if (!string.IsNullOrWhiteSpace(request.Nombre))
+        {
+            // Validar nombre único solo si cambió
+            if (tipo.Nombre != request.Nombre && 
+                await _unitOfWork.TiposSolicitud.ExistsByNombreAsync(request.Nombre))
+            {
+                throw new ValidationException($"Ya existe un tipo de solicitud con el nombre '{request.Nombre}'");
+            }
+            tipo.Nombre = request.Nombre;
+        }
+
+        // Solo actualizar descripción si se envía
+        if (request.Descripcion != null)
+        {
+            tipo.Descripcion = request.Descripcion;
+        }
+
         await _unitOfWork.TiposSolicitud.UpdateAsync(tipo);
         await _unitOfWork.SaveChangesAsync();
 

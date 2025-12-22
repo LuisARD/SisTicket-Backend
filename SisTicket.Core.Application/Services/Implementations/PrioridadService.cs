@@ -53,7 +53,30 @@ public class PrioridadService : IPrioridadService
         if (prioridad == null)
             throw new NotFoundException(nameof(Prioridad), id);
 
-        _mapper.Map(request, prioridad);
+        // Actualización parcial: solo actualizar campos con valores
+        if (!string.IsNullOrWhiteSpace(request.Nombre))
+        {
+            // Validar nombre único solo si cambió
+            if (prioridad.Nombre != request.Nombre && 
+                await _unitOfWork.Prioridades.ExistsByNombreAsync(request.Nombre))
+            {
+                throw new ValidationException($"Ya existe una prioridad con el nombre '{request.Nombre}'");
+            }
+            prioridad.Nombre = request.Nombre;
+        }
+
+        // Solo actualizar nivel si se envía un valor mayor a 0
+        if (request.Nivel > 0)
+        {
+            prioridad.Nivel = request.Nivel;
+        }
+
+        // Solo actualizar descripción si se envía
+        if (request.Descripcion != null)
+        {
+            prioridad.Descripcion = request.Descripcion;
+        }
+
         await _unitOfWork.Prioridades.UpdateAsync(prioridad);
         await _unitOfWork.SaveChangesAsync();
 

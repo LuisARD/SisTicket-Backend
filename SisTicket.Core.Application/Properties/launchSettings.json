@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SisTicket.Core.Application": {
+      "commandName": "Project"
+    },
+    "Perfil 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\luisa\\PROG-Proyectos\\Sis-DGA\\SisTicket\\SisTicket\\SisTicket-Backend\\WebApp.SisTicket\\Properties\\launchSettings.json",
+      "commandLineArgs": "dotnet run"
+    }
+  }
+}

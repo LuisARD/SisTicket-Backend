@@ -1,9 +1,9 @@
-# ?? SisTicket API - Guía de Prueba
+# ?? SisTicket API - Guía de Prueba (Versión Minimalista)
 
 ## ? Parte 1 Completada
 
 ### **Características Implementadas:**
-- ? 7 Controllers REST API completos
+- ? 4 Controllers REST API (diseño minimalista)
 - ? Middleware de excepciones global
 - ? Swagger/OpenAPI documentación
 - ? CORS configurado
@@ -11,15 +11,15 @@
 
 ---
 
-## ?? **Endpoints Disponibles**
+## ?? **Endpoints Disponibles (Minimalistas)**
 
-### **?? Autenticación (Temporal)**
+### **?? Autenticación** `/api/auth`
 ```
 POST   /api/auth/login
 POST   /api/auth/validate-token
 ```
 
-### **?? Usuarios (Solo SuperAdmin)**
+### **?? Usuarios** `/api/usuarios` (Solo SuperAdmin)
 ```
 GET    /api/usuarios
 GET    /api/usuarios/{id}
@@ -30,35 +30,33 @@ PUT    /api/usuarios/{id}
 DELETE /api/usuarios/{id}
 ```
 
-### **?? Áreas**
+### **?? Catálogos** `/api/catalogos` (Áreas, Prioridades, Tipos)
 ```
-GET    /api/areas
-GET    /api/areas/{id}
-POST   /api/areas
-PUT    /api/areas/{id}
-DELETE /api/areas/{id}
+# Áreas
+GET    /api/catalogos/areas
+GET    /api/catalogos/areas/{id}
+POST   /api/catalogos/areas
+PUT    /api/catalogos/areas/{id}
+DELETE /api/catalogos/areas/{id}
+
+# Prioridades
+GET    /api/catalogos/prioridades
+GET    /api/catalogos/prioridades/{id}
+POST   /api/catalogos/prioridades
+PUT    /api/catalogos/prioridades/{id}
+DELETE /api/catalogos/prioridades/{id}
+
+# Tipos de Solicitud
+GET    /api/catalogos/tipos-solicitud
+GET    /api/catalogos/tipos-solicitud/{id}
+POST   /api/catalogos/tipos-solicitud
+PUT    /api/catalogos/tipos-solicitud/{id}
+DELETE /api/catalogos/tipos-solicitud/{id}
 ```
 
-### **? Prioridades**
+### **?? Solicitudes y Comentarios** `/api/solicitudes`
 ```
-GET    /api/prioridades
-GET    /api/prioridades/{id}
-POST   /api/prioridades
-PUT    /api/prioridades/{id}
-DELETE /api/prioridades/{id}
-```
-
-### **?? Tipos de Solicitud**
-```
-GET    /api/tipossolicitud
-GET    /api/tipossolicitud/{id}
-POST   /api/tipossolicitud
-PUT    /api/tipossolicitud/{id}
-DELETE /api/tipossolicitud/{id}
-```
-
-### **?? Solicitudes**
-```
+# Solicitudes
 GET    /api/solicitudes
 GET    /api/solicitudes/{id}
 GET    /api/solicitudes/solicitante/{solicitanteId}
@@ -69,14 +67,24 @@ PUT    /api/solicitudes/{id}
 POST   /api/solicitudes/{id}/asignar-gestor
 POST   /api/solicitudes/{id}/cambiar-estado
 DELETE /api/solicitudes/{id}
+
+# Comentarios (dentro de solicitudes)
+GET    /api/solicitudes/{solicitudId}/comentarios
+POST   /api/solicitudes/{solicitudId}/comentarios
+DELETE /api/solicitudes/{solicitudId}/comentarios/{comentarioId}
 ```
 
-### **?? Comentarios**
-```
-GET    /api/comentarios/solicitud/{solicitudId}
-POST   /api/comentarios
-DELETE /api/comentarios/{id}
-```
+---
+
+## ?? **Resumen de Endpoints**
+
+| Controller | Endpoints | Descripción |
+|------------|-----------|-------------|
+| **AuthController** | 2 | Login y validación |
+| **UsuariosController** | 7 | CRUD de usuarios |
+| **CatalogosController** | 15 | Áreas, Prioridades, Tipos |
+| **SolicitudesController** | 13 | Solicitudes + Comentarios |
+| **Total** | **37** | |
 
 ---
 
@@ -97,7 +105,7 @@ Verás la interfaz de Swagger con todos los endpoints documentados.
 
 ## ?? **Pruebas de Ejemplo**
 
-### **1. Login (Temporal)**
+### **1. Login**
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -118,27 +126,25 @@ Content-Type: application/json
   "email": "cesar@gmail.com",
   "rol": "SuperAdmin",
   "area": "Tecnología de la Información",
-  "token": "TEMP_TOKEN_1_SuperAdmin_..."
+  "token": "TEMP_TOKEN_..."
 }
 ```
 
-### **2. Obtener Todas las Áreas**
+### **2. Obtener Catálogos**
+
+**Áreas:**
 ```http
-GET /api/areas
+GET /api/catalogos/areas
 ```
 
-**Respuesta:**
-```json
-[
-  {
-    "id": 1,
-    "nombre": "Tecnología de la Información",
-    "descripcion": "Área encargada de soporte técnico...",
-    "fechaCreacion": "2024-01-01T00:00:00Z",
-    "activo": true
-  },
-  ...
-]
+**Prioridades:**
+```http
+GET /api/catalogos/prioridades
+```
+
+**Tipos de Solicitud:**
+```http
+GET /api/catalogos/tipos-solicitud
 ```
 
 ### **3. Crear una Solicitud**
@@ -163,37 +169,28 @@ Content-Type: application/json
   "titulo": "Problema con impresora",
   "estado": "Nueva",
   "solicitanteNombre": "Cesar Motos",
-  "gestorAsignadoNombre": null,
   ...
 }
 ```
 
-### **4. Asignar Gestor (Solo Admin/SuperAdmin)**
+### **4. Agregar Comentario a una Solicitud**
 ```http
-POST /api/solicitudes/1/asignar-gestor
+POST /api/solicitudes/1/comentarios
 Content-Type: application/json
 
 {
-  "gestorId": 3
+  "texto": "Revisaré el problema mañana a primera hora"
 }
 ```
 
-### **5. Agregar Comentario**
+### **5. Ver Comentarios de una Solicitud**
 ```http
-POST /api/comentarios
-Content-Type: application/json
-
-{
-  "texto": "Revisaré el problema mañana a primera hora",
-  "solicitudId": 1
-}
+GET /api/solicitudes/1/comentarios
 ```
 
 ---
 
 ## ?? **Datos de Prueba Disponibles**
-
-Los siguientes datos ya están en la base de datos (seeds):
 
 ### **Usuarios:**
 | Usuario | Password | Rol | Área |
@@ -203,104 +200,48 @@ Los siguientes datos ya están en la base de datos (seeds):
 | gestor | password | Gestor | TI |
 | usuario | password | Solicitante | RRHH |
 
-### **Áreas:**
-- Tecnología de la Información
-- Recursos Humanos
-- Finanzas
-- Operaciones
-- Administración
-
-### **Prioridades:**
-- Baja (Nivel 1)
-- Media (Nivel 2)
-- Alta (Nivel 3)
-- Crítica (Nivel 4)
-
-### **Tipos de Solicitud:**
-- Soporte Técnico
-- Mantenimiento
-- Nuevo Requerimiento
-- Incidencia
-- Consulta
-- Acceso y Permisos
+### **Catálogos (ya cargados en BD):**
+- **5 Áreas:** TI, RRHH, Finanzas, Operaciones, Administración
+- **4 Prioridades:** Baja, Media, Alta, Crítica
+- **6 Tipos:** Soporte, Mantenimiento, Requerimiento, Incidencia, Consulta, Acceso
 
 ---
 
-## ?? **Respuestas de Error**
+## ?? **Ventajas del Diseño Minimalista**
 
-El middleware de excepciones devuelve respuestas consistentes:
+? **Endpoints lógicamente agrupados**  
+? **Menos rutas = más fácil de mantener**  
+? **Comentarios dentro del contexto de solicitudes**  
+? **Catálogos consolidados en un solo controller**  
+? **API más intuitiva y RESTful**  
 
-### **404 Not Found:**
-```json
-{
-  "statusCode": 404,
-  "message": "La entidad 'Usuario' con id (999) no fue encontrada."
-}
+---
+
+## ?? **Estructura de Rutas**
+
 ```
-
-### **400 Bad Request:**
-```json
-{
-  "statusCode": 400,
-  "message": "Ya existe un usuario con el email 'test@example.com'"
-}
-```
-
-### **401 Unauthorized:**
-```json
-{
-  "statusCode": 401,
-  "message": "Solo el SuperAdmin puede crear usuarios"
-}
+/api/auth              ? Autenticación
+/api/usuarios          ? Gestión de usuarios
+/api/catalogos         ? Todos los catálogos del sistema
+  ?? /areas
+  ?? /prioridades
+  ?? /tipos-solicitud
+/api/solicitudes       ? Solicitudes y sus comentarios
+  ?? /{id}/comentarios
 ```
 
 ---
 
 ## ?? **Notas Importantes**
 
-1. **Autenticación Temporal:** 
-   - El sistema usa un token temporal
-   - En la Parte 2 se implementará JWT real
-
-2. **Usuario Actual:**
-   - Por ahora todos los endpoints usan el usuario con ID=1 (SuperAdmin "cesar")
-   - En la Parte 2 se obtendrá del token JWT
-
-3. **Passwords:**
-   - Los passwords se hashean con un método temporal
-   - En la Parte 2 se implementará BCrypt
+1. **Autenticación Temporal:** En la Parte 2 se implementará JWT real
+2. **Usuario Actual:** Por ahora usa el usuario con ID=1 (SuperAdmin)
+3. **Passwords:** Hash temporal, se implementará BCrypt en Parte 2
 
 ---
 
-## ?? **Próxima Fase: Parte 2**
+## ?? **¡API Minimalista Lista!**
 
-- ? Implementación de JWT real
-- ? Autenticación completa
-- ? Autorización por roles con `[Authorize]`
-- ? Hash de passwords con BCrypt
-- ? Refresh tokens
-
----
-
-## ?? **Troubleshooting**
-
-### **Error de compilación:**
-```bash
-dotnet build
-```
-
-### **Error de base de datos:**
-```bash
-dotnet ef database update --project SisTicket.Infrastructure.Persistence --startup-project WebApp.SisTicket
-```
-
-### **Ver logs:**
-- Los logs aparecen en la consola durante la ejecución
-- Los errores 500+ se registran como ERROR
-- Los errores 400 se registran como WARNING
-
----
-
-## ? **¡API Lista para Probar!**
+**Solo 4 controllers principales con endpoints bien organizados.**
 
 Abre **http://localhost:5000** y explora los endpoints con Swagger.

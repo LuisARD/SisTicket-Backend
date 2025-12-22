@@ -102,26 +102,49 @@ public class SolicitudService : ISolicitudService
             throw new UnauthorizedException("Solo el solicitante puede editar la solicitud");
         }
 
-        // Validar que existe el tipo de solicitud
-        var tipoSolicitud = await _unitOfWork.TiposSolicitud.GetByIdAsync(request.TipoSolicitudId);
-        if (tipoSolicitud == null)
-            throw new NotFoundException(nameof(TipoSolicitud), request.TipoSolicitudId);
+        // Actualización parcial: solo actualizar campos con valores
 
-        // Validar que existe la prioridad
-        var prioridad = await _unitOfWork.Prioridades.GetByIdAsync(request.PrioridadId);
-        if (prioridad == null)
-            throw new NotFoundException(nameof(Prioridad), request.PrioridadId);
+        // Actualizar título si se envía
+        if (!string.IsNullOrWhiteSpace(request.Titulo))
+        {
+            solicitud.Titulo = request.Titulo;
+        }
 
-        // Validar que existe el área
-        var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId);
-        if (area == null)
-            throw new NotFoundException(nameof(Area), request.AreaId);
+        // Actualizar descripción si se envía
+        if (!string.IsNullOrWhiteSpace(request.Descripcion))
+        {
+            solicitud.Descripcion = request.Descripcion;
+        }
 
-        solicitud.Titulo = request.Titulo;
-        solicitud.Descripcion = request.Descripcion;
-        solicitud.TipoSolicitudId = request.TipoSolicitudId;
-        solicitud.PrioridadId = request.PrioridadId;
-        solicitud.AreaId = request.AreaId;
+        // Actualizar tipo de solicitud si se envía
+        if (request.TipoSolicitudId > 0)
+        {
+            var tipoSolicitud = await _unitOfWork.TiposSolicitud.GetByIdAsync(request.TipoSolicitudId);
+            if (tipoSolicitud == null)
+                throw new NotFoundException(nameof(TipoSolicitud), request.TipoSolicitudId);
+            
+            solicitud.TipoSolicitudId = request.TipoSolicitudId;
+        }
+
+        // Actualizar prioridad si se envía
+        if (request.PrioridadId > 0)
+        {
+            var prioridad = await _unitOfWork.Prioridades.GetByIdAsync(request.PrioridadId);
+            if (prioridad == null)
+                throw new NotFoundException(nameof(Prioridad), request.PrioridadId);
+            
+            solicitud.PrioridadId = request.PrioridadId;
+        }
+
+        // Actualizar área si se envía
+        if (request.AreaId > 0)
+        {
+            var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId);
+            if (area == null)
+                throw new NotFoundException(nameof(Area), request.AreaId);
+            
+            solicitud.AreaId = request.AreaId;
+        }
 
         await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
@@ -196,7 +219,7 @@ public class SolicitudService : ISolicitudService
         if (usuario == null)
             throw new UnauthorizedException();
 
-        // Validar permisos según el rol
+        // Validar permisos según elrol
         if (!usuario.TienePermisoAdministrativo() && solicitud.GestorAsignadoId != usuarioId)
         {
             throw new UnauthorizedException("No tiene permisos para cambiar el estado de esta solicitud");

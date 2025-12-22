@@ -53,13 +53,24 @@ public class AreaService : IAreaService
         if (area == null)
             throw new NotFoundException(nameof(Area), id);
 
-        var existeNombre = await _unitOfWork.Areas.ExistsByNombreAsync(request.Nombre);
-        var areaConMismoNombre = await _unitOfWork.Areas.GetByNombreAsync(request.Nombre);
-        
-        if (existeNombre && areaConMismoNombre?.Id != id)
-            throw new ValidationException($"Ya existe un área con el nombre '{request.Nombre}'");
+        // Actualización parcial: solo actualizar campos con valores
+        if (!string.IsNullOrWhiteSpace(request.Nombre))
+        {
+            var existeNombre = await _unitOfWork.Areas.ExistsByNombreAsync(request.Nombre);
+            var areaConMismoNombre = await _unitOfWork.Areas.GetByNombreAsync(request.Nombre);
+            
+            if (existeNombre && areaConMismoNombre?.Id != id)
+                throw new ValidationException($"Ya existe un área con el nombre '{request.Nombre}'");
 
-        _mapper.Map(request, area);
+            area.Nombre = request.Nombre;
+        }
+
+        // Solo actualizar descripción si se envía
+        if (request.Descripcion != null)
+        {
+            area.Descripcion = request.Descripcion;
+        }
+
         await _unitOfWork.Areas.UpdateAsync(area);
         await _unitOfWork.SaveChangesAsync();
 

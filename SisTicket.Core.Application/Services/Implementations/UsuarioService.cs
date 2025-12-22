@@ -85,33 +85,58 @@ public class UsuarioService : IUsuarioService
         if (usuario == null)
             throw new NotFoundException(nameof(Usuario), id);
 
-        // Validar email único (excepto el usuario actual)
-        var usuarioConEmail = await _unitOfWork.Usuarios.GetByEmailAsync(request.Email);
-        if (usuarioConEmail != null && usuarioConEmail.Id != id)
-            throw new ValidationException($"Ya existe un usuario con el email '{request.Email}'");
+        // Actualización parcial: solo actualizar campos con valores
+        
+        // Actualizar nombre de usuario si se envía
+        if (!string.IsNullOrWhiteSpace(request.NombreUsuario))
+        {
+            var usuarioConNombre = await _unitOfWork.Usuarios.GetByNombreUsuarioAsync(request.NombreUsuario);
+            if (usuarioConNombre != null && usuarioConNombre.Id != id)
+                throw new ValidationException($"Ya existe un usuario con el nombre de usuario '{request.NombreUsuario}'");
+            
+            usuario.NombreUsuario = request.NombreUsuario;
+        }
 
-        // Validar nombre de usuario único (excepto el usuario actual)
-        var usuarioConNombre = await _unitOfWork.Usuarios.GetByNombreUsuarioAsync(request.NombreUsuario);
-        if (usuarioConNombre != null && usuarioConNombre.Id != id)
-            throw new ValidationException($"Ya existe un usuario con el nombre de usuario '{request.NombreUsuario}'");
+        // Actualizar nombre si se envía
+        if (!string.IsNullOrWhiteSpace(request.Nombre))
+        {
+            usuario.Nombre = request.Nombre;
+        }
 
-        // Validar que el área existe si se proporciona
+        // Actualizar apellido si se envía
+        if (!string.IsNullOrWhiteSpace(request.Apellido))
+        {
+            usuario.Apellido = request.Apellido;
+        }
+
+        // Actualizar email si se envía
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var usuarioConEmail = await _unitOfWork.Usuarios.GetByEmailAsync(request.Email);
+            if (usuarioConEmail != null && usuarioConEmail.Id != id)
+                throw new ValidationException($"Ya existe un usuario con el email '{request.Email}'");
+            
+            usuario.Email = request.Email;
+        }
+
+        // Actualizar rol si se envía (validar que sea un valor válido)
+        if (request.Rol >= 0)
+        {
+            usuario.Rol = (Rol)request.Rol;
+        }
+
+        // Actualizar área si se envía
         if (request.AreaId.HasValue)
         {
             var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId.Value);
             if (area == null)
                 throw new NotFoundException(nameof(Area), request.AreaId.Value);
+            
+            usuario.AreaId = request.AreaId;
         }
 
-        usuario.NombreUsuario = request.NombreUsuario;
-        usuario.Nombre = request.Nombre;
-        usuario.Apellido = request.Apellido;
-        usuario.Email = request.Email;
-        usuario.Rol = (Rol)request.Rol;
-        usuario.AreaId = request.AreaId;
-
         // Solo actualizar password si se proporciona uno nuevo
-        if (!string.IsNullOrEmpty(request.Password))
+        if (!string.IsNullOrWhiteSpace(request.Password))
         {
             usuario.PasswordHash = HashPassword(request.Password);
         }

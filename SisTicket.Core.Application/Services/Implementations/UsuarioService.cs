@@ -1,0 +1,184 @@
+using AutoMapper;
+using SisTicket.Core.Application.DTOs.Usuario;
+using SisTicket.Core.Application.Exceptions;
+using SisTicket.Core.Application.Services.Interfaces;
+using SisTicket.Core.Domain.Entities;
+using SisTicket.Core.Domain.Enums;
+using SisTicket.Core.Domain.Interfaces;
+
+namespace SisTicket.Core.Application.Services.Implementations;
+
+public class UsuarioService : IUsuarioService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+
+    public UsuarioService(IUnitOfWork unitOfWork, IMapper mapper)
+    {
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+    }
+
+    public async Task<IEnumerable<UsuarioResponse>> GetAllAsync()
+    {
+        var usuarios = await _unitOfWork.Usuarios.GetAllAsync();
+        return _mapper.Map<IEnumerable<UsuarioResponse>>(usuarios);
+    }
+
+    public async Task<UsuarioResponse> GetByIdAsync(int id)
+    {
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(id);
+        
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), id);
+
+        return _mapper.Map<UsuarioResponse>(usuario);
+    }
+
+    public async Task<UsuarioResponse> CreateAsync(UsuarioRequest request, int usuarioActualId)
+    {
+        // VALIDAR PERMISO: Solo SuperAdmin puede crear usuarios
+        await ValidarPermisoSuperAdmin(usuarioActualId, "crear usuarios");
+
+        // Validar email único
+        if (await _unitOfWork.Usuarios.ExistsByEmailAsync(request.Email))
+            throw new ValidationException($"Ya existe un usuario con el email '{request.Email}'");
+
+        // Validar nombre de usuario único
+        if (await _unitOfWork.Usuarios.ExistsByNombreUsuarioAsync(request.NombreUsuario))
+            throw new ValidationException($"Ya existe un usuario con el nombre de usuario '{request.NombreUsuario}'");
+
+        // Validar que el área existe si se proporciona
+        if (request.AreaId.HasValue)
+        {
+            var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId.Value);
+            if (area == null)
+                throw new NotFoundException(nameof(Area), request.AreaId.Value);
+        }
+
+        var usuario = new Usuario
+        {
+            NombreUsuario = request.NombreUsuario,
+            Nombre = request.Nombre,
+            Apellido = request.Apellido,
+            Email = request.Email,
+            // NOTA: El password debe ser hasheado antes de guardar
+            // Por ahora se guarda temporal, en la siguiente fase se implementará BCrypt
+            PasswordHash = HashPassword(request.Password),
+            Rol = (Rol)request.Rol,
+            AreaId = request.AreaId
+        };
+
+        await _unitOfWork.Usuarios.AddAsync(usuario);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<UsuarioResponse>(usuario);
+    }
+
+    public async Task<UsuarioResponse> UpdateAsync(int id, UsuarioRequest request, int usuarioActualId)
+    {
+        // VALIDAR PERMISO: Solo SuperAdmin puede actualizar usuarios
+        await ValidarPermisoSuperAdmin(usuarioActualId, "actualizar usuarios");
+
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(id);
+        
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), id);
+
+        // Validar email único (excepto el usuario actual)
+        var usuarioConEmail = await _unitOfWork.Usuarios.GetByEmailAsync(request.Email);
+        if (usuarioConEmail != null && usuarioConEmail.Id != id)
+            throw new ValidationException($"Ya existe un usuario con el email '{request.Email}'");
+
+        // Validar nombre de usuario único (excepto el usuario actual)
+        var usuarioConNombre = await _unitOfWork.Usuarios.GetByNombreUsuarioAsync(request.NombreUsuario);
+        if (usuarioConNombre != null && usuarioConNombre.Id != id)
+            throw new ValidationException($"Ya existe un usuario con el nombre de usuario '{request.NombreUsuario}'");
+
+        // Validar que el área existe si se proporciona
+        if (request.AreaId.HasValue)
+        {
+            var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId.Value);
+            if (area == null)
+                throw new NotFoundException(nameof(Area), request.AreaId.Value);
+        }
+
+        usuario.NombreUsuario = request.NombreUsuario;
+        usuario.Nombre = request.Nombre;
+        usuario.Apellido = request.Apellido;
+        usuario.Email = request.Email;
+        usuario.Rol = (Rol)request.Rol;
+        usuario.AreaId = request.AreaId;
+
+        // Solo actualizar password si se proporciona uno nuevo
+        if (!string.IsNullOrEmpty(request.Password))
+        {
+            usuario.PasswordHash = HashPassword(request.Password);
+        }
+
+        await _unitOfWork.Usuarios.UpdateAsync(usuario);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<UsuarioResponse>(usuario);
+    }
+
+    public async Task DeleteAsync(int id, int usuarioActualId)
+    {
+        // VALIDAR PERMISO: Solo SuperAdmin puede eliminar usuarios
+        await ValidarPermisoSuperAdmin(usuarioActualId, "eliminar usuarios");
+
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(id);
+        
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), id);
+
+        // Validar que no se esté intentando eliminar a sí mismo
+        if (id == usuarioActualId)
+            throw new ValidationException("No puede eliminar su propio usuario");
+
+        await _unitOfWork.Usuarios.DeleteAsync(id);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<UsuarioResponse>> GetByAreaIdAsync(int areaId)
+    {
+        var area = await _unitOfWork.Areas.GetByIdAsync(areaId);
+        
+        if (area == null)
+            throw new NotFoundException(nameof(Area), areaId);
+
+        var usuarios = await _unitOfWork.Usuarios.GetByAreaIdAsync(areaId);
+        return _mapper.Map<IEnumerable<UsuarioResponse>>(usuarios);
+    }
+
+    public async Task<IEnumerable<UsuarioResponse>> GetGestoresByAreaIdAsync(int areaId)
+    {
+        var area = await _unitOfWork.Areas.GetByIdAsync(areaId);
+        
+        if (area == null)
+            throw new NotFoundException(nameof(Area), areaId);
+
+        var gestores = await _unitOfWork.Usuarios.GetGestoresByAreaIdAsync(areaId);
+        return _mapper.Map<IEnumerable<UsuarioResponse>>(gestores);
+    }
+
+    // Método privado para validar que el usuario actual es SuperAdmin
+    private async Task ValidarPermisoSuperAdmin(int usuarioActualId, string accion)
+    {
+        var usuarioActual = await _unitOfWork.Usuarios.GetByIdAsync(usuarioActualId);
+        
+        if (usuarioActual == null)
+            throw new UnauthorizedException("Usuario no encontrado");
+
+        if (!usuarioActual.EsSuperAdmin())
+            throw new UnauthorizedException($"Solo el SuperAdmin puede {accion}");
+    }
+
+    // NOTA: Método temporal de hashing
+    // En la siguiente fase se reemplazará con BCrypt o Argon2
+    private string HashPassword(string password)
+    {
+        // Implementación temporal - DEBE SER REEMPLAZADA
+        return $"TEMP_HASH_{password}";
+    }
+}

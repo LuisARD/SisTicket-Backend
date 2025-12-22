@@ -25,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<IPrioridadService, PrioridadService>();
         services.AddScoped<ITipoSolicitudService, TipoSolicitudService>();
         
+        // NOTA: IPasswordHasher se registrará en la capa de Presentation
+        // porque depende de BCrypt que es una dependencia de infraestructura
+        
         return services;
     }
 }

@@ -1,4 +1,3 @@
-using AutoMapper;
 using SisTicket.Core.Application.DTOs.Auth;
 using SisTicket.Core.Application.Exceptions;
 using SisTicket.Core.Application.Services.Interfaces;
@@ -9,12 +8,10 @@ namespace SisTicket.Core.Application.Services.Implementations;
 public class AuthService : IAuthService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
 
-    public AuthService(IUnitOfWork unitOfWork, IMapper mapper)
+    public AuthService(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _mapper = mapper;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -27,18 +24,9 @@ public class AuthService : IAuthService
             throw new UnauthorizedException("Credenciales inválidas");
         }
 
-        // Validar password
-        // NOTA: Esta es una validación temporal
-        // En la siguiente fase se implementará con BCrypt
-        if (!ValidarPassword(request.Password, usuario.PasswordHash))
-        {
-            throw new UnauthorizedException("Credenciales inválidas");
-        }
-
-        // Generar token JWT
-        // NOTA: Implementación temporal
-        // En la siguiente fase se implementará JWT real
-        var token = GenerarTokenTemporal(usuario.Id, usuario.Rol.ToString());
+        // NOTA: La validación de password se hará en el controller con IPasswordHasher
+        // El token JWT también se generará en el controller con IJwtService
+        // Este servicio solo retorna la información del usuario
 
         var response = new LoginResponse
         {
@@ -49,7 +37,7 @@ public class AuthService : IAuthService
             Email = usuario.Email,
             Rol = usuario.Rol.ToString(),
             Area = usuario.Area?.Nombre,
-            Token = token
+            Token = string.Empty // Se asignará en el controller
         };
 
         return response;
@@ -57,23 +45,7 @@ public class AuthService : IAuthService
 
     public async Task<bool> ValidateTokenAsync(string token)
     {
-        // NOTA: Implementación temporal
-        // En la siguiente fase se implementará validación JWT real
+        // La validación JWT se manejará por el middleware de autenticación
         return await Task.FromResult(!string.IsNullOrEmpty(token));
-    }
-
-    // NOTA: Método temporal de validación de password
-    // En la siguiente fase se reemplazará con BCrypt
-    private bool ValidarPassword(string password, string passwordHash)
-    {
-        // Implementación temporal - DEBE SER REEMPLAZADA
-        return passwordHash == $"TEMP_HASH_{password}";
-    }
-
-    // NOTA: Método temporal de generación de token
-    // En la siguiente fase se reemplazará con JWT real
-    private string GenerarTokenTemporal(int usuarioId, string rol)
-    {
-        return $"TEMP_TOKEN_{usuarioId}_{rol}_{Guid.NewGuid()}";
     }
 }

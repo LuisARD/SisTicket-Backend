@@ -12,11 +12,13 @@ public class UsuarioService : IUsuarioService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public UsuarioService(IUnitOfWork unitOfWork, IMapper mapper)
+    public UsuarioService(IUnitOfWork unitOfWork, IMapper mapper, IPasswordHasher passwordHasher)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<IEnumerable<UsuarioResponse>> GetAllAsync()
@@ -62,9 +64,7 @@ public class UsuarioService : IUsuarioService
             Nombre = request.Nombre,
             Apellido = request.Apellido,
             Email = request.Email,
-            // NOTA: El password debe ser hasheado antes de guardar
-            // Por ahora se guarda temporal, en la siguiente fase se implementará BCrypt
-            PasswordHash = HashPassword(request.Password),
+            PasswordHash = _passwordHasher.HashPassword(request.Password), // ? BCrypt real
             Rol = (Rol)request.Rol,
             AreaId = request.AreaId
         };
@@ -138,7 +138,7 @@ public class UsuarioService : IUsuarioService
         // Solo actualizar password si se proporciona uno nuevo
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            usuario.PasswordHash = HashPassword(request.Password);
+            usuario.PasswordHash = _passwordHasher.HashPassword(request.Password); // ? BCrypt real
         }
 
         await _unitOfWork.Usuarios.UpdateAsync(usuario);
@@ -197,13 +197,5 @@ public class UsuarioService : IUsuarioService
 
         if (!usuarioActual.EsSuperAdmin())
             throw new UnauthorizedException($"Solo el SuperAdmin puede {accion}");
-    }
-
-    // NOTA: Método temporal de hashing
-    // En la siguiente fase se reemplazará con BCrypt o Argon2
-    private string HashPassword(string password)
-    {
-        // Implementación temporal - DEBE SER REEMPLAZADA
-        return $"TEMP_HASH_{password}";
     }
 }

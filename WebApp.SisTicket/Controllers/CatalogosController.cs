@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SisTicket.Core.Application.DTOs.Area;
 using SisTicket.Core.Application.DTOs.Prioridad;
@@ -9,6 +10,7 @@ namespace WebApp.SisTicket.Controllers;
 /// <summary>
 /// Gestión de Catálogos del Sistema (Áreas, Prioridades, Tipos de Solicitud)
 /// </summary>
+[Authorize]
 public class CatalogosController : BaseApiController
 {
     private readonly IAreaService _areaService;
@@ -28,7 +30,7 @@ public class CatalogosController : BaseApiController
     #region Áreas
 
     /// <summary>
-    /// Obtiene todas las áreas
+    /// Obtiene todas las áreas (Todos los roles autenticados)
     /// </summary>
     [HttpGet("areas")]
     [ProducesResponseType(typeof(IEnumerable<AreaResponse>), StatusCodes.Status200OK)]
@@ -39,7 +41,7 @@ public class CatalogosController : BaseApiController
     }
 
     /// <summary>
-    /// Obtiene un área por ID
+    /// Obtiene un área por ID (Todos los roles autenticados)
     /// </summary>
     [HttpGet("areas/{id}")]
     [ProducesResponseType(typeof(AreaResponse), StatusCodes.Status200OK)]
@@ -54,8 +56,10 @@ public class CatalogosController : BaseApiController
     /// Crea una nueva área (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPost("areas")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(AreaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateArea([FromBody] AreaRequest request)
     {
         var area = await _areaService.CreateAsync(request);
@@ -66,8 +70,10 @@ public class CatalogosController : BaseApiController
     /// Actualiza un área (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPut("areas/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(AreaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateArea(int id, [FromBody] AreaRequest request)
     {
         var area = await _areaService.UpdateAsync(id, request);
@@ -78,8 +84,10 @@ public class CatalogosController : BaseApiController
     /// Elimina un área (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpDelete("areas/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteArea(int id)
     {
         await _areaService.DeleteAsync(id);
@@ -91,7 +99,7 @@ public class CatalogosController : BaseApiController
     #region Prioridades
 
     /// <summary>
-    /// Obtiene todas las prioridades ordenadas por nivel
+    /// Obtiene todas las prioridades (Todos los roles autenticados)
     /// </summary>
     [HttpGet("prioridades")]
     [ProducesResponseType(typeof(IEnumerable<PrioridadResponse>), StatusCodes.Status200OK)]
@@ -102,7 +110,7 @@ public class CatalogosController : BaseApiController
     }
 
     /// <summary>
-    /// Obtiene una prioridad por ID
+    /// Obtiene una prioridad por ID (Todos los roles autenticados)
     /// </summary>
     [HttpGet("prioridades/{id}")]
     [ProducesResponseType(typeof(PrioridadResponse), StatusCodes.Status200OK)]
@@ -117,8 +125,10 @@ public class CatalogosController : BaseApiController
     /// Crea una nueva prioridad (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPost("prioridades")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(PrioridadResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreatePrioridad([FromBody] PrioridadRequest request)
     {
         var prioridad = await _prioridadService.CreateAsync(request);
@@ -129,8 +139,10 @@ public class CatalogosController : BaseApiController
     /// Actualiza una prioridad (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPut("prioridades/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(PrioridadResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdatePrioridad(int id, [FromBody] PrioridadRequest request)
     {
         var prioridad = await _prioridadService.UpdateAsync(id, request);
@@ -141,8 +153,10 @@ public class CatalogosController : BaseApiController
     /// Elimina una prioridad (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpDelete("prioridades/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeletePrioridad(int id)
     {
         await _prioridadService.DeleteAsync(id);
@@ -154,7 +168,7 @@ public class CatalogosController : BaseApiController
     #region Tipos de Solicitud
 
     /// <summary>
-    /// Obtiene todos los tipos de solicitud
+    /// Obtiene todos los tipos de solicitud (Todos los roles autenticados)
     /// </summary>
     [HttpGet("tipos-solicitud")]
     [ProducesResponseType(typeof(IEnumerable<TipoSolicitudResponse>), StatusCodes.Status200OK)]
@@ -165,7 +179,7 @@ public class CatalogosController : BaseApiController
     }
 
     /// <summary>
-    /// Obtiene un tipo de solicitud por ID
+    /// Obtiene un tipo de solicitud por ID (Todos los roles autenticados)
     /// </summary>
     [HttpGet("tipos-solicitud/{id}")]
     [ProducesResponseType(typeof(TipoSolicitudResponse), StatusCodes.Status200OK)]
@@ -180,8 +194,10 @@ public class CatalogosController : BaseApiController
     /// Crea un nuevo tipo de solicitud (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPost("tipos-solicitud")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(TipoSolicitudResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateTipoSolicitud([FromBody] TipoSolicitudRequest request)
     {
         var tipo = await _tipoSolicitudService.CreateAsync(request);
@@ -192,8 +208,10 @@ public class CatalogosController : BaseApiController
     /// Actualiza un tipo de solicitud (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPut("tipos-solicitud/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(TipoSolicitudResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateTipoSolicitud(int id, [FromBody] TipoSolicitudRequest request)
     {
         var tipo = await _tipoSolicitudService.UpdateAsync(id, request);
@@ -204,8 +222,10 @@ public class CatalogosController : BaseApiController
     /// Elimina un tipo de solicitud (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpDelete("tipos-solicitud/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteTipoSolicitud(int id)
     {
         await _tipoSolicitudService.DeleteAsync(id);

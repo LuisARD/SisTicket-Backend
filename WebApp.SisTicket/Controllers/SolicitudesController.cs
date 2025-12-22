@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SisTicket.Core.Application.DTOs.Comentario;
 using SisTicket.Core.Application.DTOs.Solicitud;
@@ -9,6 +10,7 @@ namespace WebApp.SisTicket.Controllers;
 /// <summary>
 /// Gestión de Solicitudes y Comentarios
 /// </summary>
+[Authorize]
 public class SolicitudesController : BaseApiController
 {
     private readonly ISolicitudService _solicitudService;
@@ -26,24 +28,69 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Obtiene todas las solicitudes
+    /// SuperAdmin/Admin: Todas
+    /// Gestor: De su área
+    /// Solicitante: Solo las propias
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<SolicitudResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        var solicitudes = await _solicitudService.GetAllAsync();
-        return Ok(solicitudes);
+        var usuarioActualId = GetCurrentUserId();
+        var rol = GetCurrentUserRole();
+
+        // SuperAdmin y Admin ven todas
+        if (rol == "SuperAdmin" || rol == "Admin")
+        {
+            var solicitudes = await _solicitudService.GetAllAsync();
+            return Ok(solicitudes);
+        }
+
+        // Gestor ve solo las de su área (implementar en el servicio)
+        if (rol == "Gestor")
+        {
+            var solicitudes = await _solicitudService.GetByGestorIdAsync(usuarioActualId);
+            return Ok(solicitudes);
+        }
+
+        // Solicitante ve solo las propias
+        var solicitudesPropias = await _solicitudService.GetBySolicitanteIdAsync(usuarioActualId);
+        return Ok(solicitudesPropias);
     }
 
     /// <summary>
-    /// Obtiene una solicitud por ID con todos sus detalles
+    /// Obtiene una solicitud por ID con validación de permisos
     /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetById(int id)
     {
         var solicitud = await _solicitudService.GetByIdAsync(id);
+        
+        // Validar permisos: SuperAdmin/Admin ven todas
+        var rol = GetCurrentUserRole();
+        if (rol == "SuperAdmin" || rol == "Admin")
+        {
+            return Ok(solicitud);
+        }
+
+        var usuarioActualId = GetCurrentUserId();
+
+        // Gestor solo ve las de su área
+        if (rol == "Gestor")
+        {
+            // TODO: Validar que la solicitud es del área del gestor
+            return Ok(solicitud);
+        }
+
+        // Solicitante solo ve las propias
+        if (solicitud.SolicitanteId != usuarioActualId)
+        {
+            return Forbid();
+        }
+
         return Ok(solicitud);
     }
 
@@ -51,6 +98,7 @@ public class SolicitudesController : BaseApiController
     /// Obtiene solicitudes por solicitante
     /// </summary>
     [HttpGet("solicitante/{solicitanteId}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IEnumerable<SolicitudResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBySolicitante(int solicitanteId)
     {
@@ -62,6 +110,7 @@ public class SolicitudesController : BaseApiController
     /// Obtiene solicitudes por gestor asignado
     /// </summary>
     [HttpGet("gestor/{gestorId}")]
+    [Authorize(Roles = "Gestor,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IEnumerable<SolicitudResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByGestor(int gestorId)
     {
@@ -70,9 +119,10 @@ public class SolicitudesController : BaseApiController
     }
 
     /// <summary>
-    /// Obtiene solicitudes con filtros
+    /// Obtiene solicitudes con filtros (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpGet("filtrar")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IEnumerable<SolicitudResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByFiltros(
         [FromQuery] EstadoSolicitud? estado = null,
@@ -85,7 +135,7 @@ public class SolicitudesController : BaseApiController
     }
 
     /// <summary>
-    /// Crea una nueva solicitud
+    /// Crea una nueva solicitud (Todos los usuarios autenticados)
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status201Created)]
@@ -98,7 +148,8 @@ public class SolicitudesController : BaseApiController
     }
 
     /// <summary>
-    /// Actualiza una solicitud existente (Solo si está en estado Nueva y sin gestor)
+    /// Actualiza una solicitud existente
+    /// Solo el solicitante puede editar si está en estado Nueva y sin gestor
     /// </summary>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status200OK)]
@@ -116,10 +167,11 @@ public class SolicitudesController : BaseApiController
     /// Asigna un gestor a una solicitud (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpPost("{id}/asignar-gestor")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AsignarGestor(int id, [FromBody] AsignarGestorRequest request)
     {
         var usuarioActualId = GetCurrentUserId();
@@ -129,12 +181,15 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Cambia el estado de una solicitud
+    /// Admin/SuperAdmin: Cualquier solicitud
+    /// Gestor: Solo las asignadas a él
     /// </summary>
     [HttpPost("{id}/cambiar-estado")]
+    [Authorize(Roles = "Gestor,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CambiarEstado(int id, [FromBody] CambiarEstadoSolicitudRequest request)
     {
         var usuarioActualId = GetCurrentUserId();
@@ -144,11 +199,13 @@ public class SolicitudesController : BaseApiController
     }
 
     /// <summary>
-    /// Elimina una solicitud (Soft delete)
+    /// Elimina una solicitud (Solo Admin/SuperAdmin)
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(int id)
     {
         await _solicitudService.DeleteAsync(id);

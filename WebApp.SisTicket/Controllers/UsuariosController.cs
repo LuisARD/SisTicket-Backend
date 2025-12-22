@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SisTicket.Core.Application.DTOs.Usuario;
 using SisTicket.Core.Application.Services.Interfaces;
@@ -7,6 +8,7 @@ namespace WebApp.SisTicket.Controllers;
 /// <summary>
 /// Gestión de Usuarios (Solo SuperAdmin)
 /// </summary>
+[Authorize(Roles = "SuperAdmin")]
 public class UsuariosController : BaseApiController
 {
     private readonly IUsuarioService _usuarioService;
@@ -70,6 +72,7 @@ public class UsuariosController : BaseApiController
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] UsuarioRequest request)
     {
         var usuarioActualId = GetCurrentUserId();
@@ -85,6 +88,7 @@ public class UsuariosController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(int id, [FromBody] UsuarioRequest request)
     {
         var usuarioActualId = GetCurrentUserId();
@@ -99,6 +103,7 @@ public class UsuariosController : BaseApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(int id)
     {
         var usuarioActualId = GetCurrentUserId();

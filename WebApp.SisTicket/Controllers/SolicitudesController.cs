@@ -218,6 +218,7 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Obtiene todos los comentarios de una solicitud
+    /// Todos los usuarios autenticados pueden ver comentarios
     /// </summary>
     [HttpGet("{solicitudId}/comentarios")]
     [ProducesResponseType(typeof(IEnumerable<ComentarioResponse>), StatusCodes.Status200OK)]
@@ -230,12 +231,14 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Crea un nuevo comentario en una solicitud
-    /// Pueden comentar: Solicitante, Gestores del área, Admin, SuperAdmin
+    /// SOLO Gestores del área, Admin y SuperAdmin pueden comentar
+    /// Solicitantes solo pueden VER comentarios, NO crearlos
     /// </summary>
     [HttpPost("{solicitudId}/comentarios")]
     [ProducesResponseType(typeof(ComentarioResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateComentario(int solicitudId, [FromBody] ComentarioRequest request)
     {
@@ -253,6 +256,7 @@ public class SolicitudesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteComentario(int solicitudId, int comentarioId)
     {
         var usuarioActualId = GetCurrentUserId();

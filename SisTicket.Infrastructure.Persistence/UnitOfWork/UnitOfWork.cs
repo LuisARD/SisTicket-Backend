@@ -20,6 +20,7 @@ public class UnitOfWork : IUnitOfWork
         Prioridades = new PrioridadRepository(_context);
         Solicitudes = new SolicitudRepository(_context);
         Comentarios = new ComentarioRepository(_context);
+        Adjuntos = new AdjuntoRepository(_context);
     }
 
     public IUsuarioRepository Usuarios { get; }
@@ -28,6 +29,7 @@ public class UnitOfWork : IUnitOfWork
     public IPrioridadRepository Prioridades { get; }
     public ISolicitudRepository Solicitudes { get; }
     public IComentarioRepository Comentarios { get; }
+    public IAdjuntoRepository Adjuntos { get; }
 
     public async Task<int> SaveChangesAsync()
     {

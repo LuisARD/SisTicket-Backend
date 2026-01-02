@@ -24,9 +24,10 @@ public static class DependencyInjection
         services.AddScoped<IAreaService, AreaService>();
         services.AddScoped<IPrioridadService, PrioridadService>();
         services.AddScoped<ITipoSolicitudService, TipoSolicitudService>();
+        services.AddScoped<IAdjuntoService, AdjuntoService>();
         
-        // NOTA: IPasswordHasher se registrará en la capa de Presentation
-        // porque depende de BCrypt que es una dependencia de infraestructura
+        // NOTA: IPasswordHasher e IFileStorageService se registrarán en la capa de Presentation
+        // porque dependen de librerías específicas de infraestructura (BCrypt, IWebHostEnvironment)
         
         return services;
     }

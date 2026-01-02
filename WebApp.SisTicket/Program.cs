@@ -126,6 +126,7 @@ builder.Services.AddSwaggerGen(options =>
 // Servicios de Infraestructura
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // Capa de Application (Servicios, AutoMapper, FluentValidation)
 builder.Services.AddApplication();
@@ -151,6 +152,9 @@ if (app.Environment.IsDevelopment())
 
 // CORS
 app.UseCors("AllowAll");
+
+// Servir archivos estáticos (para descargas de archivos adjuntos)
+app.UseStaticFiles();
 
 // HTTPS Redirection
 app.UseHttpsRedirection();

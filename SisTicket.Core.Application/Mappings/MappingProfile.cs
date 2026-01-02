@@ -1,4 +1,5 @@
 using AutoMapper;
+using SisTicket.Core.Application.DTOs.Adjunto;
 using SisTicket.Core.Application.DTOs.Area;
 using SisTicket.Core.Application.DTOs.Comentario;
 using SisTicket.Core.Application.DTOs.Prioridad;
@@ -111,5 +112,27 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Activo, opt => opt.Ignore())
             .ForMember(dest => dest.Area, opt => opt.Ignore())
             .ForMember(dest => dest.Solicitudes, opt => opt.Ignore());
+
+        // Mapeos de Adjunto
+        CreateMap<Adjunto, AdjuntoResponse>()
+            .ForMember(dest => dest.TamanoLegible, 
+                opt => opt.MapFrom(src => FormatearTamano(src.TamanoBytes)))
+            .ForMember(dest => dest.CargadoPorNombre, 
+                opt => opt.MapFrom(src => src.CargadoPor.ObtenerNombreCompleto()));
+    }
+
+    private static string FormatearTamano(long bytes)
+    {
+        string[] sufijos = { "B", "KB", "MB", "GB" };
+        int contador = 0;
+        decimal numero = bytes;
+        
+        while (Math.Round(numero / 1024) >= 1)
+        {
+            numero /= 1024;
+            contador++;
+        }
+        
+        return $"{numero:n1} {sufijos[contador]}";
     }
 }

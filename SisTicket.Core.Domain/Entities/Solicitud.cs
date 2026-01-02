@@ -23,6 +23,7 @@ public class Solicitud : BaseEntity
     public Area Area { get; set; } = null!;
     
     public ICollection<Comentario> Comentarios { get; set; } = new List<Comentario>();
+    public ICollection<Adjunto> Adjuntos { get; set; } = new List<Adjunto>();
 
     public bool PuedeSerEditadaPorSolicitante()
     {

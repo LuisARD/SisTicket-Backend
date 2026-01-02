@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SisTicket.Core.Application.DTOs.Adjunto;
 using SisTicket.Core.Application.DTOs.Comentario;
 using SisTicket.Core.Application.DTOs.Solicitud;
 using SisTicket.Core.Application.Services.Interfaces;
@@ -15,13 +16,16 @@ public class SolicitudesController : BaseApiController
 {
     private readonly ISolicitudService _solicitudService;
     private readonly IComentarioService _comentarioService;
+    private readonly IAdjuntoService _adjuntoService;
 
     public SolicitudesController(
         ISolicitudService solicitudService,
-        IComentarioService comentarioService)
+        IComentarioService comentarioService,
+        IAdjuntoService adjuntoService)
     {
         _solicitudService = solicitudService;
         _comentarioService = comentarioService;
+        _adjuntoService = adjuntoService;
     }
 
     #region Solicitudes
@@ -261,6 +265,102 @@ public class SolicitudesController : BaseApiController
     {
         var usuarioActualId = GetCurrentUserId();
         await _comentarioService.DeleteAsync(comentarioId, usuarioActualId);
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Adjuntos
+
+    /// <summary>
+    /// Obtiene todos los adjuntos de una solicitud
+    /// </summary>
+    [HttpGet("{solicitudId}/adjuntos")]
+    [ProducesResponseType(typeof(IEnumerable<AdjuntoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdjuntos(int solicitudId)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        var rol = GetCurrentUserRole();
+
+        // Validar permisos de acceso
+        if (!await _adjuntoService.UsuarioPuedeAccederAsync(solicitudId, usuarioActualId, rol))
+        {
+            return Forbid();
+        }
+
+        var adjuntos = await _adjuntoService.GetBySolicitudIdAsync(solicitudId);
+        return Ok(adjuntos);
+    }
+
+    /// <summary>
+    /// Sube un archivo adjunto a una solicitud
+    /// Máximo 5 archivos por solicitud, 10MB por archivo
+    /// Formatos permitidos: PDF, PNG, JPG, JPEG, GIF, DOC, DOCX, XLS, XLSX, TXT, ZIP, RAR
+    /// </summary>
+    [HttpPost("{solicitudId}/adjuntos")]
+    [RequestSizeLimit(10_485_760)] // 10MB
+    [ProducesResponseType(typeof(AdjuntoResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SubirAdjunto(int solicitudId, IFormFile archivo)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        var rol = GetCurrentUserRole();
+
+        // Validar permisos de acceso
+        if (!await _adjuntoService.UsuarioPuedeAccederAsync(solicitudId, usuarioActualId, rol))
+        {
+            return Forbid();
+        }
+
+        var adjunto = await _adjuntoService.SubirArchivoAsync(solicitudId, archivo, usuarioActualId);
+        return CreatedAtAction(nameof(GetAdjuntos), new { solicitudId }, adjunto);
+    }
+
+    /// <summary>
+    /// Descarga el archivo adjunto de una solicitud
+    /// Si la solicitud no tiene adjuntos, devuelve un mensaje indicándolo
+    /// </summary>
+    [HttpGet("{solicitudId}/adjuntos/descargar")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DescargarAdjunto(int solicitudId)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        var rol = GetCurrentUserRole();
+
+        // Validar permisos de acceso
+        if (!await _adjuntoService.UsuarioPuedeAccederAsync(solicitudId, usuarioActualId, rol))
+        {
+            return Forbid();
+        }
+
+        var (stream, nombreArchivo, tipoContenido) = await _adjuntoService.DescargarArchivoAsync(
+            solicitudId, 
+            usuarioActualId
+        );
+
+        return File(stream, tipoContenido, nombreArchivo);
+    }
+
+    /// <summary>
+    /// Elimina un archivo adjunto
+    /// Solo puede eliminar: el usuario que lo subió, el gestor asignado, Admin o SuperAdmin
+    /// </summary>
+    [HttpDelete("{solicitudId}/adjuntos/{adjuntoId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> EliminarAdjunto(int solicitudId, int adjuntoId)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        
+        await _adjuntoService.EliminarAsync(adjuntoId, solicitudId, usuarioActualId);
         return NoContent();
     }
 

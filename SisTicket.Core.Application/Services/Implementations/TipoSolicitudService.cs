@@ -24,6 +24,18 @@ public class TipoSolicitudService : ITipoSolicitudService
         return _mapper.Map<IEnumerable<TipoSolicitudResponse>>(tipos);
     }
 
+    public async Task<IEnumerable<TipoSolicitudResponse>> GetByAreaIdAsync(int areaId)
+    {
+        // Validar que existe el área
+        var area = await _unitOfWork.Areas.GetByIdAsync(areaId);
+        if (area == null)
+            throw new NotFoundException(nameof(Area), areaId);
+
+        var tipos = await _unitOfWork.TiposSolicitud.GetAllAsync();
+        var tiposFiltrados = tipos.Where(t => t.AreaId == areaId);
+        return _mapper.Map<IEnumerable<TipoSolicitudResponse>>(tiposFiltrados);
+    }
+
     public async Task<TipoSolicitudResponse> GetByIdAsync(int id)
     {
         var tipo = await _unitOfWork.TiposSolicitud.GetByIdAsync(id);
@@ -36,13 +48,21 @@ public class TipoSolicitudService : ITipoSolicitudService
 
     public async Task<TipoSolicitudResponse> CreateAsync(TipoSolicitudRequest request)
     {
-        if (await _unitOfWork.TiposSolicitud.ExistsByNombreAsync(request.Nombre))
-            throw new ValidationException($"Ya existe un tipo de solicitud con el nombre '{request.Nombre}'");
+        // Validar que existe el área
+        var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId);
+        if (area == null)
+            throw new NotFoundException(nameof(Area), request.AreaId);
+
+        // Validar que no existe un tipo de solicitud con el mismo nombre en la misma área
+        if (await _unitOfWork.TiposSolicitud.ExistsByNombreAndAreaAsync(request.Nombre, request.AreaId))
+            throw new ValidationException($"Ya existe un tipo de solicitud con el nombre '{request.Nombre}' en el área '{area.Nombre}'");
 
         var tipo = _mapper.Map<TipoSolicitud>(request);
         await _unitOfWork.TiposSolicitud.AddAsync(tipo);
         await _unitOfWork.SaveChangesAsync();
 
+        // Recargar con la relación Area
+        tipo = await _unitOfWork.TiposSolicitud.GetByIdAsync(tipo.Id);
         return _mapper.Map<TipoSolicitudResponse>(tipo);
     }
 
@@ -56,11 +76,16 @@ public class TipoSolicitudService : ITipoSolicitudService
         // Actualización parcial: solo actualizar campos con valores
         if (!string.IsNullOrWhiteSpace(request.Nombre))
         {
-            // Validar nombre único solo si cambió
-            if (tipo.Nombre != request.Nombre && 
-                await _unitOfWork.TiposSolicitud.ExistsByNombreAsync(request.Nombre))
+            // Validar nombre único solo si cambia el nombre o el área
+            if (tipo.Nombre != request.Nombre || tipo.AreaId != request.AreaId)
             {
-                throw new ValidationException($"Ya existe un tipo de solicitud con el nombre '{request.Nombre}'");
+                var targetAreaId = request.AreaId > 0 ? request.AreaId : tipo.AreaId;
+                
+                if (await _unitOfWork.TiposSolicitud.ExistsByNombreAndAreaExcludingIdAsync(request.Nombre, targetAreaId, id))
+                {
+                    var area = await _unitOfWork.Areas.GetByIdAsync(targetAreaId);
+                    throw new ValidationException($"Ya existe un tipo de solicitud con el nombre '{request.Nombre}' en el área '{area?.Nombre}'");
+                }
             }
             tipo.Nombre = request.Nombre;
         }
@@ -71,9 +96,22 @@ public class TipoSolicitudService : ITipoSolicitudService
             tipo.Descripcion = request.Descripcion;
         }
 
+        // Actualizar AreaId si se envía y es diferente
+        if (request.AreaId > 0 && tipo.AreaId != request.AreaId)
+        {
+            // Validar que existe el área
+            var area = await _unitOfWork.Areas.GetByIdAsync(request.AreaId);
+            if (area == null)
+                throw new NotFoundException(nameof(Area), request.AreaId);
+            
+            tipo.AreaId = request.AreaId;
+        }
+
         await _unitOfWork.TiposSolicitud.UpdateAsync(tipo);
         await _unitOfWork.SaveChangesAsync();
 
+        // Recargar con la relación Area
+        tipo = await _unitOfWork.TiposSolicitud.GetByIdAsync(tipo.Id);
         return _mapper.Map<TipoSolicitudResponse>(tipo);
     }
 

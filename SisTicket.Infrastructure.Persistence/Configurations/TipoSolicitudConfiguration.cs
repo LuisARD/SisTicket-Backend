@@ -19,6 +19,9 @@ public class TipoSolicitudConfiguration : IEntityTypeConfiguration<TipoSolicitud
         builder.Property(t => t.Descripcion)
             .HasMaxLength(500);
 
+        builder.Property(t => t.AreaId)
+            .IsRequired();
+
         builder.Property(t => t.FechaCreacion)
             .IsRequired();
 
@@ -26,9 +29,20 @@ public class TipoSolicitudConfiguration : IEntityTypeConfiguration<TipoSolicitud
             .IsRequired()
             .HasDefaultValue(true);
 
-        // Índice único en Nombre
-        builder.HasIndex(t => t.Nombre)
+        // Relación con Area
+        builder.HasOne(t => t.Area)
+            .WithMany(a => a.TiposSolicitud)
+            .HasForeignKey(t => t.AreaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Índice único compuesto en Nombre y AreaId
+        // Esto permite que diferentes áreas tengan tipos de solicitud con el mismo nombre
+        builder.HasIndex(t => new { t.Nombre, t.AreaId })
             .IsUnique()
-            .HasDatabaseName("IX_TiposSolicitud_Nombre");
+            .HasDatabaseName("IX_TiposSolicitud_Nombre_AreaId");
+
+        // Índice en AreaId para mejorar el rendimiento de las consultas
+        builder.HasIndex(t => t.AreaId)
+            .HasDatabaseName("IX_TiposSolicitud_AreaId");
     }
 }

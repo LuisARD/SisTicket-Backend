@@ -100,13 +100,16 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Solicitudes, opt => opt.Ignore());
 
         // Mapeos de TipoSolicitud
-        CreateMap<TipoSolicitud, TipoSolicitudResponse>();
+        CreateMap<TipoSolicitud, TipoSolicitudResponse>()
+            .ForMember(dest => dest.AreaNombre, 
+                opt => opt.MapFrom(src => src.Area.Nombre));
         
         CreateMap<TipoSolicitudRequest, TipoSolicitud>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
             .ForMember(dest => dest.FechaModificacion, opt => opt.Ignore())
             .ForMember(dest => dest.Activo, opt => opt.Ignore())
+            .ForMember(dest => dest.Area, opt => opt.Ignore())
             .ForMember(dest => dest.Solicitudes, opt => opt.Ignore());
     }
 }

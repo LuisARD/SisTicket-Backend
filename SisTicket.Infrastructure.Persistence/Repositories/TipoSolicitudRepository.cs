@@ -16,11 +16,30 @@ public class TipoSolicitudRepository : GenericRepository<TipoSolicitud>, ITipoSo
         return await _dbSet.AnyAsync(t => t.Nombre == nombre && t.Activo);
     }
 
+    public async Task<bool> ExistsByNombreAndAreaAsync(string nombre, int areaId)
+    {
+        return await _dbSet.AnyAsync(t => t.Nombre == nombre && t.AreaId == areaId && t.Activo);
+    }
+
+    public async Task<bool> ExistsByNombreAndAreaExcludingIdAsync(string nombre, int areaId, int excludeId)
+    {
+        return await _dbSet.AnyAsync(t => t.Nombre == nombre && t.AreaId == areaId && t.Id != excludeId && t.Activo);
+    }
+
+    public override async Task<TipoSolicitud?> GetByIdAsync(int id)
+    {
+        return await _dbSet
+            .Include(t => t.Area)
+            .FirstOrDefaultAsync(t => t.Id == id);
+    }
+
     public override async Task<IEnumerable<TipoSolicitud>> GetAllAsync()
     {
         return await _dbSet
+            .Include(t => t.Area)
             .Where(t => t.Activo)
-            .OrderBy(t => t.Nombre)
+            .OrderBy(t => t.Area.Nombre)
+            .ThenBy(t => t.Nombre)
             .ToListAsync();
     }
 }

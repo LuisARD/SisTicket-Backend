@@ -9,4 +9,5 @@ public class Area : BaseEntity
     
     public ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
     public ICollection<Solicitud> Solicitudes { get; set; } = new List<Solicitud>();
+    public ICollection<TipoSolicitud> TiposSolicitud { get; set; } = new List<TipoSolicitud>();
 }

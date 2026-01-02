@@ -26,6 +26,12 @@ public class AreaConfiguration : IEntityTypeConfiguration<Area>
             .IsRequired()
             .HasDefaultValue(true);
 
+        // Relación con TiposSolicitud - la relación inversa se configura en TipoSolicitudConfiguration
+        builder.HasMany(a => a.TiposSolicitud)
+            .WithOne(t => t.Area)
+            .HasForeignKey(t => t.AreaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Índice único en Nombre
         builder.HasIndex(a => a.Nombre)
             .IsUnique()

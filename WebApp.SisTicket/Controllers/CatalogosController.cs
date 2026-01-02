@@ -179,6 +179,18 @@ public class CatalogosController : BaseApiController
     }
 
     /// <summary>
+    /// Obtiene los tipos de solicitud por área (Todos los roles autenticados)
+    /// </summary>
+    [HttpGet("tipos-solicitud/area/{areaId}")]
+    [ProducesResponseType(typeof(IEnumerable<TipoSolicitudResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTiposSolicitudByArea(int areaId)
+    {
+        var tipos = await _tipoSolicitudService.GetByAreaIdAsync(areaId);
+        return Ok(tipos);
+    }
+
+    /// <summary>
     /// Obtiene un tipo de solicitud por ID (Todos los roles autenticados)
     /// </summary>
     [HttpGet("tipos-solicitud/{id}")]

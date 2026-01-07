@@ -33,7 +33,7 @@ public class SolicitudesController : BaseApiController
     /// <summary>
     /// Obtiene todas las solicitudes
     /// SuperAdmin/Admin: Todas
-    /// Gestor: De su área
+    /// Gestor: Asignadas a él + Sin asignar de su área
     /// Solicitante: Solo las propias
     /// </summary>
     [HttpGet]
@@ -50,10 +50,10 @@ public class SolicitudesController : BaseApiController
             return Ok(solicitudes);
         }
 
-        // Gestor ve solo las de su área (implementar en el servicio)
+        // Gestor ve las asignadas a él + sin asignar de su área
         if (rol == "Gestor")
         {
-            var solicitudes = await _solicitudService.GetByGestorIdAsync(usuarioActualId);
+            var solicitudes = await _solicitudService.GetSolicitudesGestorAreaAsync(usuarioActualId);
             return Ok(solicitudes);
         }
 
@@ -180,6 +180,24 @@ public class SolicitudesController : BaseApiController
     {
         var usuarioActualId = GetCurrentUserId();
         var solicitud = await _solicitudService.AsignarGestorAsync(id, request.GestorId, usuarioActualId);
+        return Ok(solicitud);
+    }
+
+    /// <summary>
+    /// Permite a un gestor auto-asignarse una solicitud de su área (Solo Gestores)
+    /// La solicitud debe estar en estado Nueva y sin gestor asignado
+    /// El gestor debe pertenecer al área de la solicitud
+    /// </summary>
+    [HttpPost("{id}/tomar-solicitud")]
+    [Authorize(Roles = "Gestor")]
+    [ProducesResponseType(typeof(SolicitudResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> TomarSolicitud(int id)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        var solicitud = await _solicitudService.TomarSolicitudAsync(id, usuarioActualId);
         return Ok(solicitud);
     }
 

@@ -84,6 +84,16 @@ public class AreaService : IAreaService
         if (area == null)
             throw new NotFoundException(nameof(Area), id);
 
+        // Validar que no tenga solicitudes activas asociadas
+        var tieneSolicitudesActivas = await _unitOfWork.Solicitudes.TieneAreaSolicitudesActivasAsync(id);
+        if (tieneSolicitudesActivas)
+        {
+            throw new ValidationException(
+                $"No se puede eliminar el área '{area.Nombre}' porque tiene solicitudes activas asociadas. " +
+                "Solo se pueden eliminar áreas sin solicitudes o con solicitudes en estado Rechazada o Cerrada."
+            );
+        }
+
         await _unitOfWork.Areas.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
     }

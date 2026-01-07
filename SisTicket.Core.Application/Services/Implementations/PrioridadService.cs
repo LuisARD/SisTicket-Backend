@@ -90,6 +90,16 @@ public class PrioridadService : IPrioridadService
         if (prioridad == null)
             throw new NotFoundException(nameof(Prioridad), id);
 
+        // Validar que no tenga solicitudes activas asociadas
+        var tieneSolicitudesActivas = await _unitOfWork.Solicitudes.TienePrioridadSolicitudesActivasAsync(id);
+        if (tieneSolicitudesActivas)
+        {
+            throw new ValidationException(
+                $"No se puede eliminar la prioridad '{prioridad.Nombre}' porque tiene solicitudes activas asociadas. " +
+                "Solo se pueden eliminar prioridades sin solicitudes o con solicitudes en estado Rechazada o Cerrada."
+            );
+        }
+
         await _unitOfWork.Prioridades.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
     }

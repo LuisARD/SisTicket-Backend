@@ -98,10 +98,12 @@ public class UsuariosController : BaseApiController
 
     /// <summary>
     /// Elimina un usuario (Solo SuperAdmin)
+    /// El usuario debe estar inactivo para poder eliminarlo
     /// </summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(int id)
@@ -109,5 +111,23 @@ public class UsuariosController : BaseApiController
         var usuarioActualId = GetCurrentUserId();
         await _usuarioService.DeleteAsync(id, usuarioActualId);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Activa o desactiva un usuario (Solo SuperAdmin)
+    /// Los usuarios inactivos no pueden iniciar sesión ni ser asignados
+    /// Para eliminar un usuario primero debe estar inactivo
+    /// </summary>
+    [HttpPatch("{id}/estado")]
+    [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CambiarEstado(int id, [FromBody] CambiarEstadoUsuarioRequest request)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        var usuario = await _usuarioService.CambiarEstadoAsync(id, request.Activo, usuarioActualId);
+        return Ok(usuario);
     }
 }

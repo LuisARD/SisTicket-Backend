@@ -17,4 +17,7 @@ public interface ISolicitudRepository : IGenericRepository<Solicitud>
         DateTime? fechaDesde = null,
         DateTime? fechaHasta = null);
     Task<string> GenerarNumeroSolicitudAsync();
+    Task<bool> TieneAreaSolicitudesActivasAsync(int areaId);
+    Task<bool> TieneTipoSolicitudSolicitudesActivasAsync(int tipoSolicitudId);
+    Task<bool> TienePrioridadSolicitudesActivasAsync(int prioridadId);
 }

@@ -157,9 +157,18 @@ public class UsuarioService : IUsuarioService
         if (usuario == null)
             throw new NotFoundException(nameof(Usuario), id);
 
-        // Validar que no se esté intentando eliminar a sí mismo
+        // Validar que no se está intentando eliminar a sí mismo
         if (id == usuarioActualId)
             throw new ValidationException("No puede eliminar su propio usuario");
+
+        // VALIDACIÓN: Solo se puede eliminar si está inactivo
+        if (usuario.Activo)
+        {
+            throw new ValidationException(
+                $"No se puede eliminar el usuario '{usuario.NombreUsuario}' porque está activo. " +
+                "Primero debe desactivarlo usando el endpoint de cambio de estado."
+            );
+        }
 
         await _unitOfWork.Usuarios.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
@@ -185,6 +194,29 @@ public class UsuarioService : IUsuarioService
 
         var gestores = await _unitOfWork.Usuarios.GetGestoresByAreaIdAsync(areaId);
         return _mapper.Map<IEnumerable<UsuarioResponse>>(gestores);
+    }
+
+    public async Task<UsuarioResponse> CambiarEstadoAsync(int id, bool activo, int usuarioActualId)
+    {
+        // VALIDAR PERMISO: Solo SuperAdmin puede cambiar estado de usuarios
+        await ValidarPermisoSuperAdmin(usuarioActualId, "cambiar estado de usuarios");
+
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(id);
+        
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), id);
+
+        // Validar que no se está intentando desactivar a sí mismo
+        if (id == usuarioActualId && !activo)
+            throw new ValidationException("No puede desactivar su propio usuario");
+
+        // Cambiar estado
+        usuario.Activo = activo;
+
+        await _unitOfWork.Usuarios.UpdateAsync(usuario);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<UsuarioResponse>(usuario);
     }
 
     // Método privado para validar que el usuario actual es SuperAdmin

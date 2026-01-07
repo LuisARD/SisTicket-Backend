@@ -122,6 +122,16 @@ public class TipoSolicitudService : ITipoSolicitudService
         if (tipo == null)
             throw new NotFoundException(nameof(TipoSolicitud), id);
 
+        // Validar que no tenga solicitudes activas asociadas
+        var tieneSolicitudesActivas = await _unitOfWork.Solicitudes.TieneTipoSolicitudSolicitudesActivasAsync(id);
+        if (tieneSolicitudesActivas)
+        {
+            throw new ValidationException(
+                $"No se puede eliminar el tipo de solicitud '{tipo.Nombre}' porque tiene solicitudes activas asociadas. " +
+                "Solo se pueden eliminar tipos de solicitud sin solicitudes o con solicitudes en estado Rechazada o Cerrada."
+            );
+        }
+
         await _unitOfWork.TiposSolicitud.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
     }

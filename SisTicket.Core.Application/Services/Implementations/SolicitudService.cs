@@ -208,6 +208,57 @@ public class SolicitudService : ISolicitudService
         return _mapper.Map<SolicitudResponse>(solicitudActualizada);
     }
 
+    public async Task<SolicitudResponse> TomarSolicitudAsync(int solicitudId, int gestorId)
+    {
+        var solicitud = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitudId);
+        
+        if (solicitud == null)
+            throw new NotFoundException(nameof(Solicitud), solicitudId);
+
+        var gestor = await _unitOfWork.Usuarios.GetByIdAsync(gestorId);
+        if (gestor == null)
+            throw new NotFoundException(nameof(Usuario), gestorId);
+
+        // VALIDACIÓN 1: Verificar que es un gestor
+        if (!gestor.EsGestor())
+        {
+            throw new ValidationException("Solo los gestores pueden tomar solicitudes");
+        }
+
+        // VALIDACIÓN 2: Verificar que el gestor tiene área asignada
+        if (!gestor.AreaId.HasValue)
+        {
+            throw new ValidationException("El gestor no tiene un área asignada");
+        }
+
+        // VALIDACIÓN 3: Verificar que pertenece al área de la solicitud
+        if (gestor.AreaId.Value != solicitud.AreaId)
+        {
+            throw new ValidationException("Solo puede tomar solicitudes de su área asignada");
+        }
+
+        // VALIDACIÓN 4: Verificar que la solicitud no tiene gestor asignado
+        if (solicitud.GestorAsignadoId.HasValue)
+        {
+            throw new ValidationException("Esta solicitud ya tiene un gestor asignado");
+        }
+
+        // VALIDACIÓN 5: Verificar que está en estado Nueva
+        if (solicitud.Estado != EstadoSolicitud.Nueva)
+        {
+            throw new ValidationException("Solo se pueden tomar solicitudes en estado Nueva");
+        }
+
+        // Asignar gestor (cambia estado a EnProceso automáticamente)
+        solicitud.AsignarGestor(gestorId);
+
+        await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
+        await _unitOfWork.SaveChangesAsync();
+
+        var solicitudActualizada = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitud.Id);
+        return _mapper.Map<SolicitudResponse>(solicitudActualizada);
+    }
+
     public async Task<SolicitudResponse> CambiarEstadoAsync(int solicitudId, EstadoSolicitud nuevoEstado, int usuarioId)
     {
         var solicitud = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitudId);
@@ -252,6 +303,40 @@ public class SolicitudService : ISolicitudService
     {
         var solicitudes = await _unitOfWork.Solicitudes.GetByGestorIdAsync(gestorId);
         return _mapper.Map<IEnumerable<SolicitudResponse>>(solicitudes);
+    }
+
+    public async Task<IEnumerable<SolicitudResponse>> GetByAreaIdAsync(int areaId)
+    {
+        var area = await _unitOfWork.Areas.GetByIdAsync(areaId);
+        if (area == null)
+            throw new NotFoundException(nameof(Area), areaId);
+
+        var solicitudes = await _unitOfWork.Solicitudes.GetByAreaIdAsync(areaId);
+        return _mapper.Map<IEnumerable<SolicitudResponse>>(solicitudes);
+    }
+
+    public async Task<IEnumerable<SolicitudResponse>> GetSolicitudesGestorAreaAsync(int gestorId)
+    {
+        var gestor = await _unitOfWork.Usuarios.GetByIdAsync(gestorId);
+        
+        if (gestor == null)
+            throw new NotFoundException(nameof(Usuario), gestorId);
+
+        if (!gestor.EsGestor())
+            throw new ValidationException("El usuario no es un gestor");
+
+        if (!gestor.AreaId.HasValue)
+            throw new ValidationException("El gestor no tiene un área asignada");
+
+        // Obtener todas las solicitudes del área
+        var todasSolicitudesArea = await _unitOfWork.Solicitudes.GetByAreaIdAsync(gestor.AreaId.Value);
+
+        // Filtrar: solo las asignadas al gestor + las sin asignar
+        var solicitudesFiltradas = todasSolicitudesArea
+            .Where(s => s.GestorAsignadoId == gestorId || s.GestorAsignadoId == null)
+            .ToList();
+
+        return _mapper.Map<IEnumerable<SolicitudResponse>>(solicitudesFiltradas);
     }
 
     public async Task<IEnumerable<SolicitudResponse>> GetByFiltrosAsync(

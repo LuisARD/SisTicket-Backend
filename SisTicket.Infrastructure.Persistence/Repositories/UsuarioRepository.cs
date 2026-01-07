@@ -63,7 +63,8 @@ public class UsuarioRepository : GenericRepository<Usuario>, IUsuarioRepository
     {
         return await _dbSet
             .Include(u => u.Area)
-            .Where(u => u.Activo)
+            .OrderBy(u => u.Activo ? 0 : 1)  // Primero activos, luego inactivos
+            .ThenBy(u => u.NombreUsuario)
             .ToListAsync();
     }
 }

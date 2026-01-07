@@ -151,6 +151,33 @@ public class SolicitudRepository : GenericRepository<Solicitud>, ISolicitudRepos
         return $"{prefijo}{numeroConsecutivo:D6}";
     }
 
+    public async Task<bool> TieneAreaSolicitudesActivasAsync(int areaId)
+    {
+        return await _dbSet
+            .AnyAsync(s => s.AreaId == areaId && 
+                          s.Activo && 
+                          s.Estado != EstadoSolicitud.Rechazada && 
+                          s.Estado != EstadoSolicitud.Cerrada);
+    }
+
+    public async Task<bool> TieneTipoSolicitudSolicitudesActivasAsync(int tipoSolicitudId)
+    {
+        return await _dbSet
+            .AnyAsync(s => s.TipoSolicitudId == tipoSolicitudId && 
+                          s.Activo && 
+                          s.Estado != EstadoSolicitud.Rechazada && 
+                          s.Estado != EstadoSolicitud.Cerrada);
+    }
+
+    public async Task<bool> TienePrioridadSolicitudesActivasAsync(int prioridadId)
+    {
+        return await _dbSet
+            .AnyAsync(s => s.PrioridadId == prioridadId && 
+                          s.Activo && 
+                          s.Estado != EstadoSolicitud.Rechazada && 
+                          s.Estado != EstadoSolicitud.Cerrada);
+    }
+
     public override async Task<Solicitud?> GetByIdAsync(int id)
     {
         return await GetByIdWithDetailsAsync(id);

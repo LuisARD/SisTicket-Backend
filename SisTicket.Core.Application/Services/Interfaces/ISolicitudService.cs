@@ -11,8 +11,11 @@ public interface ISolicitudService
     Task<SolicitudResponse> UpdateAsync(int id, SolicitudRequest request, int usuarioId);
     Task DeleteAsync(int id);
     Task<SolicitudResponse> AsignarGestorAsync(int solicitudId, int gestorId, int usuarioId);
+    Task<SolicitudResponse> TomarSolicitudAsync(int solicitudId, int gestorId);
     Task<SolicitudResponse> CambiarEstadoAsync(int solicitudId, EstadoSolicitud nuevoEstado, int usuarioId);
     Task<IEnumerable<SolicitudResponse>> GetBySolicitanteIdAsync(int solicitanteId);
     Task<IEnumerable<SolicitudResponse>> GetByGestorIdAsync(int gestorId);
+    Task<IEnumerable<SolicitudResponse>> GetByAreaIdAsync(int areaId);
+    Task<IEnumerable<SolicitudResponse>> GetSolicitudesGestorAreaAsync(int gestorId);
     Task<IEnumerable<SolicitudResponse>> GetByFiltrosAsync(EstadoSolicitud? estado, int? prioridadId, DateTime? fechaDesde, DateTime? fechaHasta);
 }

@@ -253,8 +253,9 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Crea un nuevo comentario en una solicitud
-    /// SOLO Gestores del área, Admin y SuperAdmin pueden comentar
-    /// Solicitantes solo pueden VER comentarios, NO crearlos
+    /// - Solicitante: Solo en sus propias solicitudes
+    /// - Gestor: Solo en solicitudes de su área
+    /// - Admin/SuperAdmin: En cualquier solicitud
     /// </summary>
     [HttpPost("{solicitudId}/comentarios")]
     [ProducesResponseType(typeof(ComentarioResponse), StatusCodes.Status201Created)]

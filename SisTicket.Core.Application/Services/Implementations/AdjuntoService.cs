@@ -112,14 +112,27 @@ public class AdjuntoService : IAdjuntoService
         if (solicitud == null)
             return false;
 
+        // 1. Admin y SuperAdmin tienen acceso total
         if (rol == "SuperAdmin" || rol == "Admin")
             return true;
 
+        // 2. El solicitante tiene acceso a su propia solicitud
         if (solicitud.SolicitanteId == usuarioId)
             return true;
 
+        // 3. El gestor asignado tiene acceso
         if (solicitud.GestorAsignadoId == usuarioId)
             return true;
+
+        // 4. Cualquier gestor del área tiene acceso (NUEVO)
+        if (rol == "Gestor")
+        {
+            var gestor = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+            if (gestor != null && gestor.AreaId.HasValue && gestor.AreaId.Value == solicitud.AreaId)
+            {
+                return true;
+            }
+        }
 
         return false;
     }

@@ -6,9 +6,11 @@ using SisTicket.Core.Application.Services.Interfaces;
 namespace WebApp.SisTicket.Controllers;
 
 /// <summary>
-/// Gestión de Usuarios (Solo SuperAdmin)
+/// Gestión de Usuarios
+/// Lectura: Todos los roles autenticados
+/// Escritura: Solo SuperAdmin
 /// </summary>
-[Authorize(Roles = "SuperAdmin")]
+[Authorize]
 public class UsuariosController : BaseApiController
 {
     private readonly IUsuarioService _usuarioService;
@@ -20,6 +22,7 @@ public class UsuariosController : BaseApiController
 
     /// <summary>
     /// Obtiene todos los usuarios
+    /// Accesible por: Todos los roles autenticados
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<UsuarioResponse>), StatusCodes.Status200OK)]
@@ -31,6 +34,7 @@ public class UsuariosController : BaseApiController
 
     /// <summary>
     /// Obtiene un usuario por ID
+    /// Accesible por: Todos los roles autenticados
     /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
@@ -43,6 +47,7 @@ public class UsuariosController : BaseApiController
 
     /// <summary>
     /// Obtiene usuarios por área
+    /// Accesible por: Todos los roles autenticados
     /// </summary>
     [HttpGet("area/{areaId}")]
     [ProducesResponseType(typeof(IEnumerable<UsuarioResponse>), StatusCodes.Status200OK)]
@@ -55,6 +60,7 @@ public class UsuariosController : BaseApiController
 
     /// <summary>
     /// Obtiene gestores por área
+    /// Accesible por: Todos los roles autenticados
     /// </summary>
     [HttpGet("gestores/area/{areaId}")]
     [ProducesResponseType(typeof(IEnumerable<UsuarioResponse>), StatusCodes.Status200OK)]
@@ -69,6 +75,7 @@ public class UsuariosController : BaseApiController
     /// Crea un nuevo usuario (Solo SuperAdmin)
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -84,6 +91,7 @@ public class UsuariosController : BaseApiController
     /// Actualiza un usuario existente (Solo SuperAdmin)
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -101,6 +109,7 @@ public class UsuariosController : BaseApiController
     /// El usuario debe estar inactivo para poder eliminarlo
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -119,6 +128,7 @@ public class UsuariosController : BaseApiController
     /// Para eliminar un usuario primero debe estar inactivo
     /// </summary>
     [HttpPatch("{id}/estado")]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

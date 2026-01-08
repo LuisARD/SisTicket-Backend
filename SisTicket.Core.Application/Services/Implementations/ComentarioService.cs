@@ -43,15 +43,14 @@ public class ComentarioService : IComentarioService
         if (usuario == null)
             throw new NotFoundException(nameof(Usuario), usuarioId);
 
-        // REGLA DE NEGOCIO: Solo pueden comentar:
-        // 1. Los gestores del área de la solicitud
-        // 2. Admin o SuperAdmin
-        // NOTA: El solicitante solo puede VER comentarios, NO crearlos
+        // REGLA DE NEGOCIO: Pueden comentar:
+        // 1. Solicitante: SOLO en sus propias solicitudes
+        // 2. Gestor: Solo en solicitudes de su área
+        // 3. Admin/SuperAdmin: En cualquier solicitud
         if (!PuedeComentarEnSolicitud(usuario, solicitud))
         {
             throw new UnauthorizedException(
-                "No tiene permisos para comentar en esta solicitud. " +
-                "Solo gestores del área, Admin o SuperAdmin pueden comentar.");
+                "No tiene permisos para comentar en esta solicitud.");
         }
 
         var comentario = new Comentario
@@ -98,13 +97,23 @@ public class ComentarioService : IComentarioService
     // Método privado para validar permisos de creación de comentarios
     private bool PuedeComentarEnSolicitud(Usuario usuario, Solicitud solicitud)
     {
-        // 1. Es gestor del área de la solicitud
-        if (usuario.EsGestor() && usuario.AreaId == solicitud.AreaId)
-            return true;
+        // 1. Solicitante puede comentar SOLO en sus propias solicitudes
+        if (usuario.EsSolicitante())
+        {
+            return solicitud.SolicitanteId == usuario.Id;
+        }
 
-        // 2. Es Admin o SuperAdmin
+        // 2. Gestor puede comentar solo en solicitudes de su área
+        if (usuario.EsGestor())
+        {
+            return usuario.AreaId.HasValue && usuario.AreaId.Value == solicitud.AreaId;
+        }
+
+        // 3. Admin/SuperAdmin pueden comentar en cualquier solicitud
         if (usuario.TienePermisoAdministrativo())
+        {
             return true;
+        }
 
         return false;
     }

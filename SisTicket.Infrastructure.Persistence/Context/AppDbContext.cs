@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<Prioridad> Prioridades => Set<Prioridad>();
     public DbSet<Solicitud> Solicitudes => Set<Solicitud>();
     public DbSet<Comentario> Comentarios => Set<Comentario>();
+    public DbSet<Adjunto> Adjuntos => Set<Adjunto>();
+    public DbSet<AuditoriaLog> AuditoriaLogs => Set<AuditoriaLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

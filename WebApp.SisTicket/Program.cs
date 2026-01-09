@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SisTicket.Core.Application;
+using SisTicket.Core.Application.Services.Implementations;
 using SisTicket.Core.Application.Services.Interfaces;
 using SisTicket.Infrastructure.Persistence;
 using System.Text;
 using WebApp.SisTicket.Configuration;
 using WebApp.SisTicket.Middleware;
+using WebApp.SisTicket.Middlewares;
 using WebApp.SisTicket.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -128,6 +130,9 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
+// Servicio de Auditoría
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+
 // Capa de Application (Servicios, AutoMapper, FluentValidation)
 builder.Services.AddApplication();
 
@@ -162,6 +167,9 @@ app.UseHttpsRedirection();
 // Authentication & Authorization (orden importante)
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Middleware de Auditoría (después de autenticación)
+app.UseMiddleware<AuditoriaMiddleware>();
 
 // Map Controllers
 app.MapControllers();

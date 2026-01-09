@@ -9,6 +9,7 @@ public interface IUnitOfWork : IDisposable
     ISolicitudRepository Solicitudes { get; }
     IComentarioRepository Comentarios { get; }
     IAdjuntoRepository Adjuntos { get; }
+    IAuditoriaLogRepository AuditoriaLogs { get; }
     
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();

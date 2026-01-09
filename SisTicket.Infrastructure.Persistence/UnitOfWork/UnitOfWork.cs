@@ -21,6 +21,7 @@ public class UnitOfWork : IUnitOfWork
         Solicitudes = new SolicitudRepository(_context);
         Comentarios = new ComentarioRepository(_context);
         Adjuntos = new AdjuntoRepository(_context);
+        AuditoriaLogs = new AuditoriaLogRepository(_context);
     }
 
     public IUsuarioRepository Usuarios { get; }
@@ -30,6 +31,7 @@ public class UnitOfWork : IUnitOfWork
     public ISolicitudRepository Solicitudes { get; }
     public IComentarioRepository Comentarios { get; }
     public IAdjuntoRepository Adjuntos { get; }
+    public IAuditoriaLogRepository AuditoriaLogs { get; }
 
     public async Task<int> SaveChangesAsync()
     {

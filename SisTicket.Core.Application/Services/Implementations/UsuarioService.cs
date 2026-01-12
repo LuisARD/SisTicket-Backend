@@ -13,12 +13,18 @@ public class UsuarioService : IUsuarioService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IAuditoriaService _auditoriaService;
 
-    public UsuarioService(IUnitOfWork unitOfWork, IMapper mapper, IPasswordHasher passwordHasher)
+    public UsuarioService(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        IPasswordHasher passwordHasher,
+        IAuditoriaService auditoriaService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _passwordHasher = passwordHasher;
+        _auditoriaService = auditoriaService;
     }
 
     public async Task<IEnumerable<UsuarioResponse>> GetAllAsync()
@@ -85,6 +91,18 @@ public class UsuarioService : IUsuarioService
         if (usuario == null)
             throw new NotFoundException(nameof(Usuario), id);
 
+        // Capturar valores ANTES del cambio
+        var valoresAntiguos = new
+        {
+            NombreUsuario = usuario.NombreUsuario,
+            Nombre = usuario.Nombre,
+            Apellido = usuario.Apellido,
+            Email = usuario.Email,
+            Rol = usuario.Rol.ToString(),
+            AreaId = usuario.AreaId,
+            Area = usuario.Area?.Nombre
+        };
+
         // Actualización parcial: solo actualizar campos con valores
         
         // Actualizar nombre de usuario si se envía
@@ -138,11 +156,45 @@ public class UsuarioService : IUsuarioService
         // Solo actualizar password si se proporciona uno nuevo
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            usuario.PasswordHash = _passwordHasher.HashPassword(request.Password); // ? BCrypt real
+            usuario.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
         await _unitOfWork.Usuarios.UpdateAsync(usuario);
         await _unitOfWork.SaveChangesAsync();
+
+        // Recargar entidad con relaciones para obtener el nombre del área actualizada
+        usuario = await _unitOfWork.Usuarios.GetByIdAsync(id);
+
+        // Capturar valores DESPUÉS del cambio
+        var valoresNuevos = new
+        {
+            NombreUsuario = usuario.NombreUsuario,
+            Nombre = usuario.Nombre,
+            Apellido = usuario.Apellido,
+            Email = usuario.Email,
+            Rol = usuario.Rol.ToString(),
+            AreaId = usuario.AreaId,
+            Area = usuario.Area?.Nombre
+        };
+
+        // Obtener información del usuario actual
+        var usuarioActual = await _unitOfWork.Usuarios.GetByIdAsync(usuarioActualId);
+
+        // Registrar auditoría con valores antes y después
+        await _auditoriaService.RegistrarAsync(
+            usuarioActualId,
+            usuarioActual.NombreUsuario,
+            usuarioActual.Rol.ToString(),
+            TipoAccion.Actualizar,
+            "Usuarios",
+            id,
+            $"PUT /api/usuarios/{id}",
+            "Usuario modificado exitosamente",
+            valoresAntiguos: valoresAntiguos,
+            valoresNuevos: valoresNuevos,
+            ipAddress: null,
+            exitoso: true
+        );
 
         return _mapper.Map<UsuarioResponse>(usuario);
     }
@@ -210,11 +262,42 @@ public class UsuarioService : IUsuarioService
         if (id == usuarioActualId && !activo)
             throw new ValidationException("No puede desactivar su propio usuario");
 
+        // Capturar estado ANTES del cambio
+        var valoresAntiguos = new
+        {
+            Activo = usuario.Activo
+        };
+
         // Cambiar estado
         usuario.Activo = activo;
 
         await _unitOfWork.Usuarios.UpdateAsync(usuario);
         await _unitOfWork.SaveChangesAsync();
+
+        // Capturar estado DESPUÉS del cambio
+        var valoresNuevos = new
+        {
+            Activo = usuario.Activo
+        };
+
+        // Obtener información del usuario actual
+        var usuarioActual = await _unitOfWork.Usuarios.GetByIdAsync(usuarioActualId);
+
+        // Registrar auditoría
+        await _auditoriaService.RegistrarAsync(
+            usuarioActualId,
+            usuarioActual.NombreUsuario,
+            usuarioActual.Rol.ToString(),
+            activo ? TipoAccion.ActivarUsuario : TipoAccion.DesactivarUsuario,
+            "Usuarios",
+            id,
+            $"PATCH /api/usuarios/{id}/estado",
+            activo ? "Usuario activado exitosamente" : "Usuario desactivado exitosamente",
+            valoresAntiguos: valoresAntiguos,
+            valoresNuevos: valoresNuevos,
+            ipAddress: null,
+            exitoso: true
+        );
 
         return _mapper.Map<UsuarioResponse>(usuario);
     }

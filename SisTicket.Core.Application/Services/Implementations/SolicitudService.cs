@@ -12,11 +12,13 @@ public class SolicitudService : ISolicitudService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IAuditoriaService _auditoriaService;
 
-    public SolicitudService(IUnitOfWork unitOfWork, IMapper mapper)
+    public SolicitudService(IUnitOfWork unitOfWork, IMapper mapper, IAuditoriaService auditoriaService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _auditoriaService = auditoriaService;
     }
 
     public async Task<IEnumerable<SolicitudResponse>> GetAllAsync()
@@ -102,6 +104,16 @@ public class SolicitudService : ISolicitudService
             throw new UnauthorizedException("Solo el solicitante puede editar la solicitud");
         }
 
+        // Capturar valores ANTES del cambio
+        var valoresAntiguos = new
+        {
+            Titulo = solicitud.Titulo,
+            Descripcion = solicitud.Descripcion,
+            TipoSolicitud = solicitud.TipoSolicitud?.Nombre,
+            Prioridad = solicitud.Prioridad?.Nombre,
+            Area = solicitud.Area?.Nombre
+        };
+
         // Actualización parcial: solo actualizar campos con valores
 
         // Actualizar título si se envía
@@ -149,7 +161,35 @@ public class SolicitudService : ISolicitudService
         await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
 
+        // Recargar con relaciones para obtener valores actualizados
         var solicitudActualizada = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitud.Id);
+        
+        // Capturar valores DESPUÉS del cambio
+        var valoresNuevos = new
+        {
+            Titulo = solicitudActualizada.Titulo,
+            Descripcion = solicitudActualizada.Descripcion,
+            TipoSolicitud = solicitudActualizada.TipoSolicitud?.Nombre,
+            Prioridad = solicitudActualizada.Prioridad?.Nombre,
+            Area = solicitudActualizada.Area?.Nombre
+        };
+
+        // Registrar auditoría
+        await _auditoriaService.RegistrarAsync(
+            usuarioId,
+            usuario.NombreUsuario,
+            usuario.Rol.ToString(),
+            TipoAccion.Actualizar,
+            "Solicitudes",
+            id,
+            $"PUT /api/solicitudes/{id}",
+            "Solicitud modificada exitosamente",
+            valoresAntiguos: valoresAntiguos,
+            valoresNuevos: valoresNuevos,
+            ipAddress: null,
+            exitoso: true
+        );
+
         return _mapper.Map<SolicitudResponse>(solicitudActualizada);
     }
 
@@ -270,11 +310,18 @@ public class SolicitudService : ISolicitudService
         if (usuario == null)
             throw new UnauthorizedException();
 
-        // Validar permisos según elrol
+        // Validar permisos según el rol
         if (!usuario.TienePermisoAdministrativo() && solicitud.GestorAsignadoId != usuarioId)
         {
             throw new UnauthorizedException("No tiene permisos para cambiar el estado de esta solicitud");
         }
+
+        // Capturar estado ANTES del cambio
+        var valoresAntiguos = new
+        {
+            Estado = solicitud.Estado.ToString(),
+            NumeroSolicitud = solicitud.NumeroSolicitud
+        };
 
         // Cambiar estado (valida transiciones)
         try
@@ -288,6 +335,29 @@ public class SolicitudService : ISolicitudService
 
         await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
+
+        // Capturar estado DESPUÉS del cambio
+        var valoresNuevos = new
+        {
+            Estado = solicitud.Estado.ToString(),
+            NumeroSolicitud = solicitud.NumeroSolicitud
+        };
+
+        // Registrar auditoría
+        await _auditoriaService.RegistrarAsync(
+            usuarioId,
+            usuario.NombreUsuario,
+            usuario.Rol.ToString(),
+            TipoAccion.CambiarEstado,
+            "Solicitudes",
+            solicitudId,
+            $"POST /api/solicitudes/{solicitudId}/cambiar-estado",
+            $"Estado cambiado de {valoresAntiguos.Estado} a {valoresNuevos.Estado}",
+            valoresAntiguos: valoresAntiguos,
+            valoresNuevos: valoresNuevos,
+            ipAddress: null,
+            exitoso: true
+        );
 
         var solicitudActualizada = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitud.Id);
         return _mapper.Map<SolicitudResponse>(solicitudActualizada);

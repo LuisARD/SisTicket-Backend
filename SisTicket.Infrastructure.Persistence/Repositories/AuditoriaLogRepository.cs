@@ -43,17 +43,17 @@ public class AuditoriaLogRepository : GenericRepository<AuditoriaLog>, IAuditori
 
         if (fechaDesde.HasValue)
         {
-            query = query.Where(a => a.FechaHoraUtc >= fechaDesde.Value);
+            query = query.Where(a => a.FechaHora >= fechaDesde.Value);
         }
 
         if (fechaHasta.HasValue)
         {
-            query = query.Where(a => a.FechaHoraUtc <= fechaHasta.Value);
+            query = query.Where(a => a.FechaHora <= fechaHasta.Value);
         }
 
         // Paginación
         var logs = await query
-            .OrderByDescending(a => a.FechaHoraUtc)
+            .OrderByDescending(a => a.FechaHora)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -88,12 +88,12 @@ public class AuditoriaLogRepository : GenericRepository<AuditoriaLog>, IAuditori
 
         if (fechaDesde.HasValue)
         {
-            query = query.Where(a => a.FechaHoraUtc >= fechaDesde.Value);
+            query = query.Where(a => a.FechaHora >= fechaDesde.Value);
         }
 
         if (fechaHasta.HasValue)
         {
-            query = query.Where(a => a.FechaHoraUtc <= fechaHasta.Value);
+            query = query.Where(a => a.FechaHora <= fechaHasta.Value);
         }
 
         return await query.CountAsync();

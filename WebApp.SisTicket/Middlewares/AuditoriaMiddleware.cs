@@ -30,7 +30,6 @@ public class AuditoriaMiddleware
         var nombreUsuario = context.User.FindFirst(ClaimTypes.Name)?.Value;
         var rol = context.User.FindFirst(ClaimTypes.Role)?.Value;
         var ipAddress = context.Connection.RemoteIpAddress?.ToString();
-        var userAgent = context.Request.Headers["User-Agent"].ToString();
 
         try
         {
@@ -42,6 +41,7 @@ public class AuditoriaMiddleware
                 var tipoAccion = DeterminarTipoAccion(method, path, context.Response.StatusCode);
                 var entidad = ExtraerEntidad(path);
                 var entidadId = ExtraerEntidadId(path);
+                var descripcion = GenerarDescripcion(method, context.Response.StatusCode);
 
                 if (tipoAccion.HasValue)
                 {
@@ -53,9 +53,8 @@ public class AuditoriaMiddleware
                         entidad,
                         entidadId,
                         $"{method} {path}",
-                        $"Status: {context.Response.StatusCode}",
+                        descripcion,
                         ipAddress: ipAddress,
-                        userAgent: userAgent,
                         exitoso: context.Response.StatusCode < 400
                     );
                 }
@@ -72,9 +71,8 @@ public class AuditoriaMiddleware
                 ExtraerEntidad(path),
                 null,
                 $"{method} {path}",
-                "Error en la ejecución",
+                "Error interno en la ejecución",
                 ipAddress: ipAddress,
-                userAgent: userAgent,
                 exitoso: false,
                 mensajeError: ex.Message
             );
@@ -115,7 +113,6 @@ public class AuditoriaMiddleware
         
         if (path.Contains("/estado", StringComparison.OrdinalIgnoreCase) && method == "PATCH")
         {
-            // Determinar si es activar o desactivar leyendo el body (simplificado)
             return TipoAccion.ActivarUsuario;
         }
         
@@ -132,6 +129,34 @@ public class AuditoriaMiddleware
             "PATCH" => TipoAccion.Actualizar,
             "DELETE" => TipoAccion.Eliminar,
             _ => null
+        };
+    }
+
+    private string GenerarDescripcion(string method, int statusCode)
+    {
+        // Si hay error
+        if (statusCode >= 400)
+        {
+            return statusCode switch
+            {
+                400 => "Error de validación en la solicitud",
+                401 => "Acceso no autorizado",
+                403 => "Permisos insuficientes",
+                404 => "Recurso no encontrado",
+                500 => "Error interno del servidor",
+                _ => $"Error con código {statusCode}"
+            };
+        }
+
+        // Si es exitoso
+        return method switch
+        {
+            "GET" => "Consulta realizada exitosamente",
+            "POST" => "Registro creado exitosamente",
+            "PUT" => "Registro modificado exitosamente",
+            "PATCH" => "Registro actualizado exitosamente",
+            "DELETE" => "Registro eliminado exitosamente",
+            _ => "Operación realizada exitosamente"
         };
     }
 

@@ -14,8 +14,7 @@ public class AuditoriaLogResponse
     public string? ValoresAntiguos { get; set; }
     public string? ValoresNuevos { get; set; }
     public string? IpAddress { get; set; }
-    public string? UserAgent { get; set; }
     public bool Exitoso { get; set; }
     public string? MensajeError { get; set; }
-    public DateTime FechaHoraUtc { get; set; }
+    public DateTime FechaHora { get; set; }
 }

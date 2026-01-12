@@ -35,13 +35,10 @@ public class AuditoriaLogConfiguration : IEntityTypeConfiguration<AuditoriaLog>
         builder.Property(a => a.IpAddress)
             .HasMaxLength(50);
 
-        builder.Property(a => a.UserAgent)
-            .HasMaxLength(500);
-
         builder.Property(a => a.Exitoso)
             .IsRequired();
 
-        builder.Property(a => a.FechaHoraUtc)
+        builder.Property(a => a.FechaHora)
             .IsRequired();
 
         // Relación con Usuario
@@ -52,7 +49,7 @@ public class AuditoriaLogConfiguration : IEntityTypeConfiguration<AuditoriaLog>
 
         // Índices para mejorar performance de consultas
         builder.HasIndex(a => a.UsuarioId);
-        builder.HasIndex(a => a.FechaHoraUtc);
+        builder.HasIndex(a => a.FechaHora);
         builder.HasIndex(a => a.TipoAccion);
         builder.HasIndex(a => new { a.Entidad, a.EntidadId });
     }

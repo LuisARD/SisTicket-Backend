@@ -117,7 +117,7 @@ public class AuditoriaController : BaseApiController
             null, TipoAccion.AccesoDenegado, null, fechaDesde, fechaHasta, pageNumber, pageSize);
 
         var todosErrores = logs.Concat(accesosDenegados)
-            .OrderByDescending(l => l.FechaHoraUtc)
+            .OrderByDescending(l => l.FechaHora)
             .Take(pageSize);
 
         return Ok(todosErrores);

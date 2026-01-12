@@ -31,7 +31,6 @@ public class AuditoriaService : IAuditoriaService
         object? valoresAntiguos = null,
         object? valoresNuevos = null,
         string? ipAddress = null,
-        string? userAgent = null,
         bool exitoso = true,
         string? mensajeError = null)
     {
@@ -54,12 +53,9 @@ public class AuditoriaService : IAuditoriaService
                     ? JsonSerializer.Serialize(valoresNuevos, new JsonSerializerOptions { WriteIndented = false })
                     : null,
                 IpAddress = ipAddress,
-                UserAgent = userAgent,
                 Exitoso = exitoso,
                 MensajeError = mensajeError,
-                FechaHoraUtc = DateTime.UtcNow,
-                FechaCreacion = DateTime.UtcNow,
-                Activo = true
+                FechaHora = DateTime.UtcNow
             };
 
             await _unitOfWork.AuditoriaLogs.AddAsync(log);
@@ -68,7 +64,6 @@ public class AuditoriaService : IAuditoriaService
         catch (Exception ex)
         {
             // Si falla el registro de auditoría, no queremos que falle la operación principal
-            // Solo logueamos el error (opcional: usar ILogger)
             Console.WriteLine($"Error al registrar auditoría: {ex.Message}");
         }
     }
@@ -99,10 +94,9 @@ public class AuditoriaService : IAuditoriaService
             ValoresAntiguos = log.ValoresAntiguos,
             ValoresNuevos = log.ValoresNuevos,
             IpAddress = log.IpAddress,
-            UserAgent = log.UserAgent,
             Exitoso = log.Exitoso,
             MensajeError = log.MensajeError,
-            FechaHoraUtc = log.FechaHoraUtc
+            FechaHora = log.FechaHora
         });
     }
 

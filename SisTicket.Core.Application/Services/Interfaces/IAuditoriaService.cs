@@ -17,7 +17,6 @@ public interface IAuditoriaService
         object? valoresAntiguos = null,
         object? valoresNuevos = null,
         string? ipAddress = null,
-        string? userAgent = null,
         bool exitoso = true,
         string? mensajeError = null
     );

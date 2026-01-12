@@ -26,6 +26,15 @@ public class AppDbContext : DbContext
 
         // Aplicar todas las configuraciones automáticamente
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Filtro global para soft delete: No mostrar registros eliminados
+        modelBuilder.Entity<Usuario>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<Solicitud>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<Area>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<Prioridad>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<TipoSolicitud>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<Comentario>().HasQueryFilter(e => !e.Eliminado);
+        modelBuilder.Entity<Adjunto>().HasQueryFilter(e => !e.Eliminado);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

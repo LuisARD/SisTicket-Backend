@@ -10,4 +10,5 @@ public class LoginResponse
     public string Rol { get; set; } = string.Empty;
     public string? Area { get; set; }
     public string Token { get; set; } = string.Empty;
+    public bool TienePasswordTemporal { get; set; }
 }

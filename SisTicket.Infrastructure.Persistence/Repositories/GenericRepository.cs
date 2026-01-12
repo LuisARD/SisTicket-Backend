@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SisTicket.Core.Domain.Common;
 using SisTicket.Core.Domain.Interfaces;
 using SisTicket.Infrastructure.Persistence.Context;
 
@@ -40,9 +41,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task DeleteAsync(int id)
     {
         var entity = await GetByIdAsync(id);
-        if (entity != null)
+        if (entity != null && entity is BaseEntity baseEntity)
         {
-            _dbSet.Remove(entity);
+            // Soft delete: marcar como eliminado en lugar de eliminar físicamente
+            baseEntity.Eliminado = true;
+            baseEntity.Activo = false;
+            baseEntity.FechaEliminacion = DateTime.UtcNow;
+            baseEntity.FechaModificacion = DateTime.UtcNow;
+            _dbSet.Update(entity);
         }
     }
 

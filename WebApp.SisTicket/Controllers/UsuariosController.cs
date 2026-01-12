@@ -140,4 +140,29 @@ public class UsuariosController : BaseApiController
         var usuario = await _usuarioService.CambiarEstadoAsync(id, request.Activo, usuarioActualId);
         return Ok(usuario);
     }
+
+    /// <summary>
+    /// Permite a CUALQUIER usuario autenticado cambiar su propia contraseña
+    /// Requisitos de seguridad:
+    /// - Mínimo 8 caracteres
+    /// - Al menos 1 letra mayúscula
+    /// - Al menos 1 número
+    /// - Al menos 1 símbolo (-, *, @, !, #, $, %, etc.)
+    /// </summary>
+    [HttpPost("cambiar-mi-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CambiarMiPassword([FromBody] CambiarPasswordRequest request)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        await _usuarioService.CambiarMiPasswordAsync(usuarioActualId, request);
+        
+        return Ok(new 
+        { 
+            message = "Contraseña cambiada exitosamente",
+            success = true
+        });
+    }
 }

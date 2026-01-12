@@ -6,4 +6,6 @@ public abstract class BaseEntity
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaModificacion { get; set; }
     public bool Activo { get; set; } = true;
+    public bool Eliminado { get; set; } = false;
+    public DateTime? FechaEliminacion { get; set; }
 }

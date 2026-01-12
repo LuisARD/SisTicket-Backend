@@ -8,10 +8,12 @@ namespace SisTicket.Core.Application.Services.Implementations;
 public class AuthService : IAuthService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public AuthService(IUnitOfWork unitOfWork)
+    public AuthService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -28,6 +30,9 @@ public class AuthService : IAuthService
         // El token JWT también se generará en el controller con IJwtService
         // Este servicio solo retorna la información del usuario
 
+        // Detectar si tiene la contraseña temporal por defecto
+        bool tienePasswordTemporal = _passwordHasher.VerifyPassword("Password@88", usuario.PasswordHash);
+
         var response = new LoginResponse
         {
             Id = usuario.Id,
@@ -37,7 +42,8 @@ public class AuthService : IAuthService
             Email = usuario.Email,
             Rol = usuario.Rol.ToString(),
             Area = usuario.Area?.Nombre,
-            Token = string.Empty // Se asignará en el controller
+            Token = string.Empty, // Se asignará en el controller
+            TienePasswordTemporal = tienePasswordTemporal
         };
 
         return response;

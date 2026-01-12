@@ -70,7 +70,7 @@ public class UsuarioService : IUsuarioService
             Nombre = request.Nombre,
             Apellido = request.Apellido,
             Email = request.Email,
-            PasswordHash = _passwordHasher.HashPassword(request.Password), // ? BCrypt real
+            PasswordHash = _passwordHasher.HashPassword("Password@88"),
             Rol = (Rol)request.Rol,
             AreaId = request.AreaId
         };
@@ -213,15 +213,7 @@ public class UsuarioService : IUsuarioService
         if (id == usuarioActualId)
             throw new ValidationException("No puede eliminar su propio usuario");
 
-        // VALIDACIÓN: Solo se puede eliminar si está inactivo
-        if (usuario.Activo)
-        {
-            throw new ValidationException(
-                $"No se puede eliminar el usuario '{usuario.NombreUsuario}' porque está activo. " +
-                "Primero debe desactivarlo usando el endpoint de cambio de estado."
-            );
-        }
-
+        // Soft delete: el método DeleteAsync del repositorio marca Eliminado = true
         await _unitOfWork.Usuarios.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
     }
@@ -312,5 +304,50 @@ public class UsuarioService : IUsuarioService
 
         if (!usuarioActual.EsSuperAdmin())
             throw new UnauthorizedException($"Solo el SuperAdmin puede {accion}");
+    }
+
+    public async Task CambiarMiPasswordAsync(int usuarioId, CambiarPasswordRequest request)
+    {
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+        
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), usuarioId);
+
+        // VALIDACIÓN 1: Verificar password actual
+        if (!_passwordHasher.VerifyPassword(request.PasswordActual, usuario.PasswordHash))
+            throw new ValidationException("La contraseña actual es incorrecta");
+
+        // VALIDACIÓN 2: Verificar que no sea la misma password
+        if (_passwordHasher.VerifyPassword(request.PasswordNueva, usuario.PasswordHash))
+            throw new ValidationException("La nueva contraseña debe ser diferente a la actual");
+
+        // VALIDACIÓN 3: Si tiene password temporal, NO puede reutilizarla
+        bool tienePasswordTemporal = _passwordHasher.VerifyPassword("Password@88", usuario.PasswordHash);
+        
+        if (tienePasswordTemporal && request.PasswordNueva == "Password@88")
+            throw new ValidationException("No puede usar la contraseña temporal como nueva contraseña");
+
+        // Actualizar contraseña
+        usuario.PasswordHash = _passwordHasher.HashPassword(request.PasswordNueva);
+        
+        await _unitOfWork.Usuarios.UpdateAsync(usuario);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Registrar en auditoría
+        var usuarioActual = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+        await _auditoriaService.RegistrarAsync(
+            usuarioId,
+            usuarioActual.NombreUsuario,
+            usuarioActual.Rol.ToString(),
+            TipoAccion.Actualizar,
+            "Usuarios",
+            usuarioId,
+            "POST /api/usuarios/cambiar-mi-password",
+            "Contraseña cambiada exitosamente",
+            valoresAntiguos: new { CambioPassword = "Anterior" },
+            valoresNuevos: new { CambioPassword = DateTime.UtcNow },
+            ipAddress: null,
+            exitoso: true
+        );
     }
 }

@@ -315,11 +315,11 @@ public class SolicitudesController : BaseApiController
 
     /// <summary>
     /// Sube un archivo adjunto a una solicitud
-    /// Máximo 5 archivos por solicitud, 10MB por archivo
-    /// Formatos permitidos: PDF, PNG, JPG, JPEG, GIF, DOC, DOCX, XLS, XLSX, TXT, ZIP, RAR
+    /// Máximo 5 archivos por solicitud, 5MB por archivo
+    /// Formatos permitidos: PDF (.pdf), Excel (.xls, .xlsx), Word (.doc, .docx), Texto (.txt), Imágenes (.jpg, .jpeg, .png, .gif)
     /// </summary>
     [HttpPost("{solicitudId}/adjuntos")]
-    [RequestSizeLimit(10_485_760)] // 10MB
+    [RequestSizeLimit(5_242_880)] // 5MB
     [ProducesResponseType(typeof(AdjuntoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

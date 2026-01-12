@@ -14,6 +14,31 @@ public class AdjuntoService : IAdjuntoService
     private readonly IFileStorageService _fileStorageService;
     private readonly IMapper _mapper;
     private const int MaxArchivosPermitidos = 5;
+    private const long MaxTamanoArchivo = 5_242_880; // 5MB
+
+    // Tipos de archivo permitidos
+    private static readonly Dictionary<string, string[]> TiposArchivosPermitidos = new()
+    {
+        // PDF
+        { ".pdf", new[] { "application/pdf" } },
+        
+        // Excel
+        { ".xls", new[] { "application/vnd.ms-excel" } },
+        { ".xlsx", new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } },
+        
+        // Word
+        { ".doc", new[] { "application/msword" } },
+        { ".docx", new[] { "application/vnd.openxmlformats-officedocument.wordprocessingml.document" } },
+        
+        // Texto
+        { ".txt", new[] { "text/plain" } },
+        
+        // Imágenes
+        { ".jpg", new[] { "image/jpeg" } },
+        { ".jpeg", new[] { "image/jpeg" } },
+        { ".png", new[] { "image/png" } },
+        { ".gif", new[] { "image/gif" } }
+    };
 
     public AdjuntoService(
         IUnitOfWork unitOfWork,
@@ -50,6 +75,32 @@ public class AdjuntoService : IAdjuntoService
         if (solicitud == null)
             throw new NotFoundException(nameof(Solicitud), solicitudId);
 
+        // Validación 1: Verificar que se proporcionó un archivo
+        if (archivo == null || archivo.Length == 0)
+            throw new ValidationException("Debe proporcionar un archivo válido");
+
+        // Validación 2: Verificar tamaño del archivo
+        if (archivo.Length > MaxTamanoArchivo)
+            throw new ValidationException($"El archivo no puede superar los {MaxTamanoArchivo / 1_048_576} MB");
+
+        // Validación 3: Verificar tipo de archivo por extensión
+        var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+        if (string.IsNullOrEmpty(extension) || !TiposArchivosPermitidos.ContainsKey(extension))
+        {
+            var extensionesPermitidas = string.Join(", ", TiposArchivosPermitidos.Keys);
+            throw new ValidationException(
+                $"Tipo de archivo no permitido. Solo se aceptan archivos: {extensionesPermitidas}");
+        }
+
+        // Validación 4: Verificar MIME type (seguridad adicional)
+        var mimeTypesPermitidos = TiposArchivosPermitidos[extension];
+        if (!mimeTypesPermitidos.Contains(archivo.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ValidationException(
+                $"El tipo de contenido del archivo ({archivo.ContentType}) no coincide con la extensión ({extension})");
+        }
+
+        // Validación 5: Verificar cantidad de archivos
         var cantidadAdjuntos = await _unitOfWork.Adjuntos.ContarPorSolicitudAsync(solicitudId);
         if (cantidadAdjuntos >= MaxArchivosPermitidos)
             throw new ValidationException($"La solicitud no puede tener más de {MaxArchivosPermitidos} archivos adjuntos");

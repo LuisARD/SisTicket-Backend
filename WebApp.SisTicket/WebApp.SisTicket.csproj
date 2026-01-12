@@ -30,4 +30,8 @@
     <ProjectReference Include="..\SisTicket.Infrastructure.Persistence\SisTicket.Infrastructure.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Middlewares\" />
+  </ItemGroup>
+
 </Project>

@@ -2,7 +2,7 @@ using System.Security.Claims;
 using SisTicket.Core.Application.Services.Interfaces;
 using SisTicket.Core.Domain.Enums;
 
-namespace WebApp.SisTicket.Middlewares;
+namespace WebApp.SisTicket.Middleware.Auditoria;
 
 public class AuditoriaMiddleware
 {

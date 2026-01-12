@@ -8,7 +8,7 @@ using SisTicket.Infrastructure.Persistence;
 using System.Text;
 using WebApp.SisTicket.Configuration;
 using WebApp.SisTicket.Middleware;
-using WebApp.SisTicket.Middlewares;
+using WebApp.SisTicket.Middleware.Auditoria;
 using WebApp.SisTicket.Services;
 
 var builder = WebApplication.CreateBuilder(args);

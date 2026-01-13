@@ -51,6 +51,9 @@ public class AuthController : BaseApiController
             throw new UnauthorizedException("Credenciales inválidas");
         }
 
+        // Detectar si tiene la contraseña temporal por defecto
+        bool tienePasswordTemporal = _passwordHasher.VerifyPassword("Password@88", usuario.PasswordHash);
+
         // Generar token JWT
         var token = _jwtService.GenerateToken(usuario.Id, usuario.NombreUsuario, usuario.Rol.ToString());
 
@@ -63,7 +66,7 @@ public class AuthController : BaseApiController
             Expires = DateTimeOffset.UtcNow.AddHours(1)
         });
 
-        // Respuesta sin incluir el token (está en la cookie)
+        // Respuesta con el campo tienePasswordTemporal
         var response = new LoginResponse
         {
             Id = usuario.Id,
@@ -73,7 +76,8 @@ public class AuthController : BaseApiController
             Email = usuario.Email,
             Rol = usuario.Rol.ToString(),
             Area = usuario.Area?.Nombre,
-            Token = "Token almacenado en cookie HTTP-Only"
+            Token = token,
+            TienePasswordTemporal = tienePasswordTemporal
         };
 
         return Ok(response);
@@ -108,6 +112,9 @@ public class AuthController : BaseApiController
             throw new UnauthorizedException();
         }
 
+        // Detectar si tiene la contraseña temporal por defecto
+        bool tienePasswordTemporal = _passwordHasher.VerifyPassword("Password@88", usuario.PasswordHash);
+
         var response = new LoginResponse
         {
             Id = usuario.Id,
@@ -117,7 +124,8 @@ public class AuthController : BaseApiController
             Email = usuario.Email,
             Rol = usuario.Rol.ToString(),
             Area = usuario.Area?.Nombre,
-            Token = "Autenticado"
+            Token = "Autenticado",
+            TienePasswordTemporal = tienePasswordTemporal
         };
 
         return Ok(response);

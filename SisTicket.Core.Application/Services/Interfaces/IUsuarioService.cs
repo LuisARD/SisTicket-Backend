@@ -13,4 +13,5 @@ public interface IUsuarioService
     Task<IEnumerable<UsuarioResponse>> GetGestoresByAreaIdAsync(int areaId);
     Task<UsuarioResponse> CambiarEstadoAsync(int id, bool activo, int usuarioActualId);
     Task CambiarMiPasswordAsync(int usuarioId, CambiarPasswordRequest request);
+    Task RestablecerPasswordAsync(int usuarioId, int usuarioActualId);
 }

@@ -350,4 +350,56 @@ public class UsuarioService : IUsuarioService
             exitoso: true
         );
     }
+
+    public async Task RestablecerPasswordAsync(int usuarioId, int usuarioActualId)
+    {
+        // VALIDACIÓN 1: Solo SuperAdmin puede restablecer contraseñas
+        await ValidarPermisoSuperAdmin(usuarioActualId, "restablecer contraseñas");
+        
+        // VALIDACIÓN 2: Verificar que el usuario existe
+        var usuario = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+        if (usuario == null)
+            throw new NotFoundException(nameof(Usuario), usuarioId);
+        
+        // VALIDACIÓN 3: No puede restablecer su propia contraseña
+        if (usuarioId == usuarioActualId)
+            throw new ValidationException("No puede restablecer su propia contraseña");
+        
+        // Capturar valores antes del cambio
+        var valoresAntiguos = new
+        {
+            PasswordRestablecida = false,
+            Usuario = usuario.NombreUsuario
+        };
+        
+        // Restablecer a password temporal por defecto
+        usuario.PasswordHash = _passwordHasher.HashPassword("Password@88");
+        
+        await _unitOfWork.Usuarios.UpdateAsync(usuario);
+        await _unitOfWork.SaveChangesAsync();
+        
+        // Capturar valores después del cambio
+        var valoresNuevos = new
+        {
+            PasswordRestablecida = true,
+            PasswordTemporal = "Password@88"
+        };
+        
+        // Registrar en auditoría
+        var usuarioActual = await _unitOfWork.Usuarios.GetByIdAsync(usuarioActualId);
+        await _auditoriaService.RegistrarAsync(
+            usuarioActualId,
+            usuarioActual.NombreUsuario,
+            usuarioActual.Rol.ToString(),
+            TipoAccion.Actualizar,
+            "Usuarios",
+            usuarioId,
+            $"POST /api/usuarios/{usuarioId}/restablecer-password",
+            $"Contraseña del usuario '{usuario.NombreUsuario}' restablecida a password temporal por SuperAdmin",
+            valoresAntiguos: valoresAntiguos,
+            valoresNuevos: valoresNuevos,
+            ipAddress: null,
+            exitoso: true
+        );
+    }
 }

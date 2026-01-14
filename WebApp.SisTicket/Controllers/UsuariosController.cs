@@ -165,4 +165,28 @@ public class UsuariosController : BaseApiController
             success = true
         });
     }
+
+    /// <summary>
+    /// Restablece la contraseña de un usuario a la temporal por defecto "Password@88" (Solo SuperAdmin)
+    /// El usuario deberá cambiarla obligatoriamente en su próximo login
+    /// No puede restablecer su propia contraseña
+    /// </summary>
+    [HttpPost("{id}/restablecer-password")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RestablecerPassword(int id)
+    {
+        var usuarioActualId = GetCurrentUserId();
+        await _usuarioService.RestablecerPasswordAsync(id, usuarioActualId);
+        
+        return Ok(new 
+        { 
+            message = "Contraseña restablecida exitosamente a 'Password@88'",
+            success = true,
+            info = "El usuario deberá cambiar su contraseña en el próximo login"
+        });
+    }
 }

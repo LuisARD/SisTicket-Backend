@@ -52,6 +52,14 @@ public class UsuarioRepository : GenericRepository<Usuario>, IUsuarioRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Usuario>> GetAdministradoresAsync()
+    {
+        return await _dbSet
+            .Include(u => u.Area)
+            .Where(u => (u.Rol == Rol.Admin || u.Rol == Rol.SuperAdmin) && u.Activo)
+            .ToListAsync();
+    }
+
     public override async Task<Usuario?> GetByIdAsync(int id)
     {
         return await _dbSet

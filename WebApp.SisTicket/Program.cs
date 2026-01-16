@@ -7,6 +7,7 @@ using SisTicket.Core.Application.Services.Interfaces;
 using SisTicket.Infrastructure.Persistence;
 using System.Text;
 using WebApp.SisTicket.Configuration;
+using WebApp.SisTicket.Hubs;
 using WebApp.SisTicket.Middleware;
 using WebApp.SisTicket.Middleware.Auditoria;
 using WebApp.SisTicket.Services;
@@ -132,6 +133,13 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // Servicio de Auditoría
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+
+// Servicios de Notificaciones
+builder.Services.AddScoped<INotificacionService, NotificacionService>();
+builder.Services.AddScoped<NotificacionBroadcaster>();
+
+// Background Service para limpieza de notificaciones
+builder.Services.AddHostedService<NotificacionCleanupService>();
 
 // Capa de Application (Servicios, AutoMapper, FluentValidation)
 builder.Services.AddApplication();

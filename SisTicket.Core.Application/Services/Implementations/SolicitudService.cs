@@ -13,12 +13,18 @@ public class SolicitudService : ISolicitudService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IAuditoriaService _auditoriaService;
+    private readonly INotificacionService _notificacionService;
 
-    public SolicitudService(IUnitOfWork unitOfWork, IMapper mapper, IAuditoriaService auditoriaService)
+    public SolicitudService(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        IAuditoriaService auditoriaService,
+        INotificacionService notificacionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _auditoriaService = auditoriaService;
+        _notificacionService = notificacionService;
     }
 
     public async Task<IEnumerable<SolicitudResponse>> GetAllAsync()
@@ -76,6 +82,13 @@ public class SolicitudService : ISolicitudService
 
         await _unitOfWork.Solicitudes.AddAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
+
+        // Notificar creación de solicitud a gestores del área y admins
+        await _notificacionService.NotificarSolicitudCreadaAsync(
+            solicitud.Id,
+            solicitud.NumeroSolicitud,
+            solicitanteId,
+            solicitud.AreaId);
 
         var solicitudCreada = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitud.Id);
         return _mapper.Map<SolicitudResponse>(solicitudCreada);
@@ -323,6 +336,8 @@ public class SolicitudService : ISolicitudService
             NumeroSolicitud = solicitud.NumeroSolicitud
         };
 
+        var estadoAnterior = solicitud.Estado;
+
         // Cambiar estado (valida transiciones)
         try
         {
@@ -335,6 +350,16 @@ public class SolicitudService : ISolicitudService
 
         await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
+
+        // Notificar cambio de estado
+        await _notificacionService.NotificarEstadoCambiadoAsync(
+            solicitudId,
+            solicitud.NumeroSolicitud,
+            estadoAnterior,
+            nuevoEstado,
+            usuarioId,
+            solicitud.GestorAsignadoId,
+            solicitud.SolicitanteId);
 
         // Capturar estado DESPUÉS del cambio
         var valoresNuevos = new

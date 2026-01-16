@@ -10,4 +10,5 @@ public interface IUsuarioRepository : IGenericRepository<Usuario>
     Task<bool> ExistsByNombreUsuarioAsync(string nombreUsuario);
     Task<IEnumerable<Usuario>> GetByAreaIdAsync(int areaId);
     Task<IEnumerable<Usuario>> GetGestoresByAreaIdAsync(int areaId);
+    Task<IEnumerable<Usuario>> GetAdministradoresAsync();
 }

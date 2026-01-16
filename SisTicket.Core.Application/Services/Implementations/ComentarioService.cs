@@ -11,11 +11,16 @@ public class ComentarioService : IComentarioService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly INotificacionService _notificacionService;
 
-    public ComentarioService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ComentarioService(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper,
+        INotificacionService notificacionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _notificacionService = notificacionService;
     }
 
     public async Task<IEnumerable<ComentarioResponse>> GetBySolicitudIdAsync(int solicitudId)
@@ -62,6 +67,14 @@ public class ComentarioService : IComentarioService
 
         await _unitOfWork.Comentarios.AddAsync(comentario);
         await _unitOfWork.SaveChangesAsync();
+
+        // Notificar nuevo comentario
+        await _notificacionService.NotificarComentarioAgregadoAsync(
+            comentario.SolicitudId,
+            solicitud.NumeroSolicitud,
+            usuarioId,
+            solicitud.GestorAsignadoId,
+            solicitud.SolicitanteId);
 
         var comentarioCreado = await _unitOfWork.Comentarios.GetByIdAsync(comentario.Id);
         return _mapper.Map<ComentarioResponse>(comentarioCreado);

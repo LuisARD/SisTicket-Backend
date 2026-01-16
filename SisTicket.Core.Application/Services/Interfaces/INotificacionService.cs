@@ -7,8 +7,9 @@ public interface INotificacionService
 {
     /// <summary>
     /// Notifica a gestores del área y admins sobre una nueva solicitud
+    /// Retorna tupla con IDs de destinatarios y la notificación creada
     /// </summary>
-    Task<IEnumerable<int>> NotificarSolicitudCreadaAsync(
+    Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarSolicitudCreadaAsync(
         int solicitudId,
         string numeroSolicitud,
         int solicitanteId,
@@ -16,8 +17,9 @@ public interface INotificacionService
 
     /// <summary>
     /// Notifica al solicitante y admins cuando un gestor es asignado
+    /// Retorna tupla con IDs de destinatarios y la notificación creada
     /// </summary>
-    Task<IEnumerable<int>> NotificarGestorAsignadoAsync(
+    Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarGestorAsignadoAsync(
         int solicitudId,
         string numeroSolicitud,
         int gestorId,
@@ -25,8 +27,9 @@ public interface INotificacionService
 
     /// <summary>
     /// Notifica según el rol del autor del comentario
+    /// Retorna tupla con IDs de destinatarios y la notificación creada
     /// </summary>
-    Task<IEnumerable<int>> NotificarComentarioAgregadoAsync(
+    Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarComentarioAgregadoAsync(
         int solicitudId,
         string numeroSolicitud,
         int autorComentarioId,
@@ -35,8 +38,9 @@ public interface INotificacionService
 
     /// <summary>
     /// Notifica sobre cambios de estado a solicitante, gestor y admins
+    /// Retorna tupla con IDs de destinatarios y la notificación creada
     /// </summary>
-    Task<IEnumerable<int>> NotificarEstadoCambiadoAsync(
+    Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarEstadoCambiadoAsync(
         int solicitudId,
         string numeroSolicitud,
         EstadoSolicitud estadoAnterior,

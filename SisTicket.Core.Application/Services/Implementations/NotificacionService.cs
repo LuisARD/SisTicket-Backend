@@ -11,14 +11,14 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
     private const string CACHE_KEY_PREFIX = "notificaciones_usuario_";
     private readonly TimeSpan _duracionCache = TimeSpan.FromHours(24);
 
-    public async Task<IEnumerable<int>> NotificarSolicitudCreadaAsync(
+    public async Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarSolicitudCreadaAsync(
         int solicitudId,
         string numeroSolicitud,
         int solicitanteId,
         int areaId)
     {
         var solicitante = await unitOfWork.Usuarios.GetByIdAsync(solicitanteId);
-        if (solicitante == null) return [];
+        if (solicitante == null) return ([], null!);
 
         var destinatarios = new List<int>();
 
@@ -43,21 +43,22 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
             FechaCreacion = DateTime.UtcNow
         };
 
-        GuardarNotificacionParaUsuarios(destinatarios.Distinct(), notificacion);
-        return destinatarios.Distinct();
+        var destinatariosUnicos = destinatarios.Distinct().ToList();
+        GuardarNotificacionParaUsuarios(destinatariosUnicos, notificacion);
+        return (destinatariosUnicos, notificacion);
     }
 
-    public async Task<IEnumerable<int>> NotificarGestorAsignadoAsync(
+    public async Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarGestorAsignadoAsync(
         int solicitudId,
         string numeroSolicitud,
         int gestorId,
         bool esAutoasignacion)
     {
         var gestor = await unitOfWork.Usuarios.GetByIdAsync(gestorId);
-        if (gestor == null) return [];
+        if (gestor == null) return ([], null!);
 
         var solicitud = await unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitudId);
-        if (solicitud == null) return [];
+        if (solicitud == null) return ([], null!);
 
         var destinatarios = new List<int> { solicitud.SolicitanteId };
 
@@ -85,11 +86,12 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
             FechaCreacion = DateTime.UtcNow
         };
 
-        GuardarNotificacionParaUsuarios(destinatarios.Distinct(), notificacion);
-        return destinatarios.Distinct();
+        var destinatariosUnicos = destinatarios.Distinct().ToList();
+        GuardarNotificacionParaUsuarios(destinatariosUnicos, notificacion);
+        return (destinatariosUnicos, notificacion);
     }
 
-    public async Task<IEnumerable<int>> NotificarComentarioAgregadoAsync(
+    public async Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarComentarioAgregadoAsync(
         int solicitudId,
         string numeroSolicitud,
         int autorComentarioId,
@@ -97,7 +99,7 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
         int solicitanteId)
     {
         var autor = await unitOfWork.Usuarios.GetByIdAsync(autorComentarioId);
-        if (autor == null) return [];
+        if (autor == null) return ([], null!);
 
         var destinatarios = new List<int>();
 
@@ -139,10 +141,10 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
 
         var destinatariosUnicos = destinatarios.Distinct().ToList();
         GuardarNotificacionParaUsuarios(destinatariosUnicos, notificacion);
-        return destinatariosUnicos;
+        return (destinatariosUnicos, notificacion);
     }
 
-    public async Task<IEnumerable<int>> NotificarEstadoCambiadoAsync(
+    public async Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarEstadoCambiadoAsync(
         int solicitudId,
         string numeroSolicitud,
         EstadoSolicitud estadoAnterior,
@@ -152,7 +154,7 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
         int solicitanteId)
     {
         var usuario = await unitOfWork.Usuarios.GetByIdAsync(usuarioCambioId);
-        if (usuario == null) return [];
+        if (usuario == null) return ([], null!);
 
         var destinatarios = new List<int> { solicitanteId };
 
@@ -177,7 +179,7 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
 
         var destinatariosUnicos = destinatarios.Distinct().ToList();
         GuardarNotificacionParaUsuarios(destinatariosUnicos, notificacion);
-        return destinatariosUnicos;
+        return (destinatariosUnicos, notificacion);
     }
 
     public Task<IEnumerable<NotificacionDto>> ObtenerNotificacionesUsuarioAsync(int usuarioId)

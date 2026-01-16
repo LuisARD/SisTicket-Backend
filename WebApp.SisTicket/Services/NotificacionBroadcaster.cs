@@ -1,17 +1,15 @@
 using Microsoft.AspNetCore.SignalR;
 using SisTicket.Core.Application.DTOs.Notificacion;
+using SisTicket.Core.Application.Services.Interfaces;
 using WebApp.SisTicket.Hubs;
 
 namespace WebApp.SisTicket.Services;
 
 /// <summary>
-/// Servicio para enviar notificaciones en tiempo real vía SignalR
+/// Implementación del broadcaster usando SignalR
 /// </summary>
-public class NotificacionBroadcaster(IHubContext<NotificacionHub> hubContext)
+public class NotificacionBroadcaster(IHubContext<NotificacionHub> hubContext) : INotificacionBroadcaster
 {
-    /// <summary>
-    /// Envía una notificación a múltiples usuarios conectados
-    /// </summary>
     public async Task EnviarNotificacionAsync(IEnumerable<int> usuariosIds, NotificacionDto notificacion)
     {
         var tasks = usuariosIds.Select(async usuarioId =>

@@ -84,6 +84,12 @@ builder.Services.AddCors(options =>
 // Controllers
 builder.Services.AddControllers();
 
+// Memory Cache para notificaciones (24h) - DEBE ir antes de AddApplication
+builder.Services.AddMemoryCache();
+
+// SignalR para notificaciones en tiempo real
+builder.Services.AddSignalR();
+
 // Swagger/OpenAPI con soporte JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -136,7 +142,7 @@ builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 
 // Servicios de Notificaciones
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
-builder.Services.AddScoped<NotificacionBroadcaster>();
+builder.Services.AddScoped<INotificacionBroadcaster, NotificacionBroadcaster>();
 
 // Background Service para limpieza de notificaciones
 builder.Services.AddHostedService<NotificacionCleanupService>();

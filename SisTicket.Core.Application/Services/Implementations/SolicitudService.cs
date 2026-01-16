@@ -14,17 +14,20 @@ public class SolicitudService : ISolicitudService
     private readonly IMapper _mapper;
     private readonly IAuditoriaService _auditoriaService;
     private readonly INotificacionService _notificacionService;
+    private readonly INotificacionBroadcaster _broadcaster;
 
     public SolicitudService(
         IUnitOfWork unitOfWork, 
         IMapper mapper, 
         IAuditoriaService auditoriaService,
-        INotificacionService notificacionService)
+        INotificacionService notificacionService,
+        INotificacionBroadcaster broadcaster)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _auditoriaService = auditoriaService;
         _notificacionService = notificacionService;
+        _broadcaster = broadcaster;
     }
 
     public async Task<IEnumerable<SolicitudResponse>> GetAllAsync()
@@ -352,7 +355,7 @@ public class SolicitudService : ISolicitudService
         await _unitOfWork.SaveChangesAsync();
 
         // Notificar cambio de estado
-        await _notificacionService.NotificarEstadoCambiadoAsync(
+        var (destinatarios, notificacion) = await _notificacionService.NotificarEstadoCambiadoAsync(
             solicitudId,
             solicitud.NumeroSolicitud,
             estadoAnterior,
@@ -360,6 +363,12 @@ public class SolicitudService : ISolicitudService
             usuarioId,
             solicitud.GestorAsignadoId,
             solicitud.SolicitanteId);
+
+        // Enviar notificación en tiempo real
+        if (destinatarios.Any())
+        {
+            await _broadcaster.EnviarNotificacionAsync(destinatarios, notificacion);
+        }
 
         // Capturar estado DESPUÉS del cambio
         var valoresNuevos = new

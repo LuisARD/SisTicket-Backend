@@ -260,6 +260,19 @@ public class SolicitudService : ISolicitudService
         await _unitOfWork.Solicitudes.UpdateAsync(solicitud);
         await _unitOfWork.SaveChangesAsync();
 
+        // Notificar asignación manual de gestor por Admin
+        var (destinatarios, notificacion) = await _notificacionService.NotificarGestorAsignadoAsync(
+            solicitudId,
+            solicitud.NumeroSolicitud,
+            gestorId,
+            esAutoasignacion: false);
+
+        // Enviar notificación en tiempo real
+        if (destinatarios.Any())
+        {
+            await _broadcaster.EnviarNotificacionAsync(destinatarios, notificacion);
+        }
+
         var solicitudActualizada = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(solicitud.Id);
         return _mapper.Map<SolicitudResponse>(solicitudActualizada);
     }

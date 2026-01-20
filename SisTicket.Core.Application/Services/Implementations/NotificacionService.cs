@@ -182,22 +182,152 @@ public class NotificacionService(IMemoryCache cache, IUnitOfWork unitOfWork) : I
         return (destinatariosUnicos, notificacion);
     }
 
-    public Task<IEnumerable<NotificacionDto>> ObtenerNotificacionesUsuarioAsync(int usuarioId)
+    public async Task<(IEnumerable<int> destinatarios, NotificacionDto notificacion)> NotificarComentarioEliminadoAsync(
+        int solicitudId,
+        string numeroSolicitud,
+        int usuarioEliminaId,
+        int? gestorAsignadoId,
+        int solicitanteId)
     {
+        var usuarioElimina = await unitOfWork.Usuarios.GetByIdAsync(usuarioEliminaId);
+        if (usuarioElimina == null) return ([], null!);
+
+        var destinatarios = new List<int>();
+
+        // Admins siempre reciben notificaciones
+        var admins = await unitOfWork.Usuarios.GetAdministradoresAsync();
+        destinatarios.AddRange(admins.Where(a => a.Id != usuarioEliminaId).Select(a => a.Id));
+
+        // Gestor asignado (si existe y no es quien eliminó)
+        if (gestorAsignadoId.HasValue && gestorAsignadoId != usuarioEliminaId)
+        {
+            destinatarios.Add(gestorAsignadoId.Value);
+        }
+
+        var notificacion = new NotificacionDto
+        {
+            Id = Guid.NewGuid(),
+            Tipo = TipoNotificacion.ComentarioEliminado,
+            Mensaje = $"{usuarioElimina.ObtenerNombreCompleto()} eliminó un comentario en la solicitud {numeroSolicitud}",
+            UsuarioGeneradorId = usuarioEliminaId,
+            UsuarioGeneradorNombre = usuarioElimina.ObtenerNombreCompleto(),
+            UsuarioGeneradorRol = usuarioElimina.Rol.ToString(),
+            SolicitudId = solicitudId,
+            NumeroSolicitud = numeroSolicitud,
+            FechaCreacion = DateTime.UtcNow
+        };
+
+        var destinatariosUnicos = destinatarios.Distinct().ToList();
+        GuardarNotificacionParaUsuarios(destinatariosUnicos, notificacion);
+        return (destinatariosUnicos, notificacion);
+    }
+
+    public async Task<IEnumerable<NotificacionDto>> ObtenerNotificacionesUsuarioAsync(int usuarioId)
+    {
+        var usuario = await unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+        if (usuario == null) return [];
+
+        // Admin y SuperAdmin ven TODAS las notificaciones del sistema
+        if (usuario.TienePermisoAdministrativo())
+        {
+            return await ObtenerTodasLasNotificacionesAsync();
+        }
+
+        // Usuario normal: solo sus notificaciones
         var cacheKey = $"{CACHE_KEY_PREFIX}{usuarioId}";
         
         if (cache.TryGetValue(cacheKey, out List<NotificacionDto>? notificaciones))
         {
-            return Task.FromResult(notificaciones?.AsEnumerable() ?? []);
+            return notificaciones?.AsEnumerable() ?? [];
         }
 
-        return Task.FromResult(Enumerable.Empty<NotificacionDto>());
+        return [];
+    }
+
+    public Task<IEnumerable<NotificacionDto>> ObtenerTodasLasNotificacionesAsync()
+    {
+        var todasNotificaciones = new List<NotificacionDto>();
+
+        // Obtener todas las claves de caché que comienzan con el prefijo
+        // Nota: MemoryCache no tiene método para listar claves, 
+        // por lo que necesitamos mantener un registro
+        var usuarios = unitOfWork.Usuarios.GetAllAsync().Result;
+        
+        foreach (var usuario in usuarios)
+        {
+            var cacheKey = $"{CACHE_KEY_PREFIX}{usuario.Id}";
+            
+            if (cache.TryGetValue(cacheKey, out List<NotificacionDto>? notificaciones))
+            {
+                if (notificaciones != null)
+                {
+                    todasNotificaciones.AddRange(notificaciones);
+                }
+            }
+        }
+
+        // Eliminar duplicados y ordenar por fecha descendente
+        var notificacionesUnicas = todasNotificaciones
+            .GroupBy(n => n.Id)
+            .Select(g => g.First())
+            .OrderByDescending(n => n.FechaCreacion)
+            .ToList();
+
+        return Task.FromResult(notificacionesUnicas.AsEnumerable());
+    }
+
+    public async Task<bool> EliminarNotificacionAsync(Guid notificacionId, int usuarioId)
+    {
+        var usuario = await unitOfWork.Usuarios.GetByIdAsync(usuarioId);
+        
+        // Solo Admin o SuperAdmin pueden eliminar notificaciones
+        if (usuario == null || !usuario.TienePermisoAdministrativo())
+        {
+            return false;
+        }
+
+        var eliminada = false;
+        var usuarios = await unitOfWork.Usuarios.GetAllAsync();
+
+        foreach (var user in usuarios)
+        {
+            var cacheKey = $"{CACHE_KEY_PREFIX}{user.Id}";
+            
+            if (cache.TryGetValue(cacheKey, out List<NotificacionDto>? notificaciones))
+            {
+                if (notificaciones != null)
+                {
+                    var notifAEliminar = notificaciones.FirstOrDefault(n => n.Id == notificacionId);
+                    if (notifAEliminar != null)
+                    {
+                        notificaciones.Remove(notifAEliminar);
+                        cache.Set(cacheKey, notificaciones, _duracionCache);
+                        eliminada = true;
+                    }
+                }
+            }
+        }
+
+        return eliminada;
+    }
+
+    public async Task LimpiarNotificacionesUsuarioAsync(int usuarioIdObjetivo, int adminId)
+    {
+        var admin = await unitOfWork.Usuarios.GetByIdAsync(adminId);
+        
+        // Solo Admin o SuperAdmin pueden limpiar notificaciones
+        if (admin == null || !admin.TienePermisoAdministrativo())
+        {
+            return;
+        }
+
+        var cacheKey = $"{CACHE_KEY_PREFIX}{usuarioIdObjetivo}";
+        cache.Remove(cacheKey);
     }
 
     public Task LimpiarNotificacionesAntiguasAsync()
     {
-        // El MemoryCache automáticamente elimina entradas expiradas
-        // Este método existe por completitud de la interfaz
+        // El MemoryCache automáticamente elimina entradas expiradas (24h)
         return Task.CompletedTask;
     }
 

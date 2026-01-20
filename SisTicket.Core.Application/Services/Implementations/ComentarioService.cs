@@ -112,8 +112,27 @@ public class ComentarioService : IComentarioService
                 "Solo el autor, Admin o SuperAdmin pueden eliminarlo.");
         }
 
+        // Obtener datos de la solicitud antes de eliminar
+        var solicitud = await _unitOfWork.Solicitudes.GetByIdWithDetailsAsync(comentario.SolicitudId);
+        if (solicitud == null)
+            throw new NotFoundException(nameof(Solicitud), comentario.SolicitudId);
+
         await _unitOfWork.Comentarios.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
+
+        // Notificar eliminación de comentario
+        var (destinatarios, notificacion) = await _notificacionService.NotificarComentarioEliminadoAsync(
+            comentario.SolicitudId,
+            solicitud.NumeroSolicitud,
+            usuarioId,
+            solicitud.GestorAsignadoId,
+            solicitud.SolicitanteId);
+
+        // Enviar notificación en tiempo real
+        if (destinatarios.Any())
+        {
+            await _broadcaster.EnviarNotificacionAsync(destinatarios, notificacion);
+        }
     }
 
     // Método privado para validar permisos de creación de comentarios
